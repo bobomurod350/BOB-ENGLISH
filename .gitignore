@@ -1,0 +1,24 @@
+node_modules/
+.expo/
+dist/
+web-build/
+*.log
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+.expo/
+dist/
+build/
+web-build/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Logs and local files
+*.log
+.DS_Store
