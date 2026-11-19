@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Alert,
   Image,
@@ -90,7 +91,7 @@ function Avatar({ size = 42 }: { size?: number }) {
   return <Image source={EMMA} style={{ width: size, height: size, borderRadius: size / 2, borderWidth: 1.5, borderColor: C.gold }} />;
 }
 
-function BottomTabs({ active, onSelect }: { active: Tab; onSelect: (tab: Tab) => void }) {
+function BottomTabs({ active, onSelect, bottomInset = 0 }: { active: Tab; onSelect: (tab: Tab) => void; bottomInset?: number }) {
   const tabs: { key: Tab; title: string; icon: IconName }[] = [
     { key: 'home', title: 'Home', icon: 'home-outline' },
     { key: 'practice', title: 'Practice', icon: 'headset-outline' },
@@ -99,11 +100,11 @@ function BottomTabs({ active, onSelect }: { active: Tab; onSelect: (tab: Tab) =>
     { key: 'profile', title: 'Profile', icon: 'person-outline' },
   ];
   return (
-    <View style={styles.tabBar}>
+    <View style={[styles.tabBar, { paddingBottom: Math.max(bottomInset, 8) }]}>
       {tabs.map((tab) => {
         const selected = active === tab.key;
         return (
-          <Pressable key={tab.key} onPress={() => onSelect(tab.key)} style={styles.tabItem}>
+          <Pressable key={tab.key} onPress={() => onSelect(tab.key)} style={({ pressed }) => [styles.tabItem, pressed && styles.pressed]}>
             <View style={[styles.tabIconWrap, selected && styles.tabIconWrapActive]}>
               <Icon name={tab.icon} size={20} color={selected ? C.gold : C.dim} />
             </View>
@@ -138,7 +139,8 @@ function ScenarioCard({ icon, title, detail, onPress, tint = C.card2 }: { icon: 
   );
 }
 
-export default function App() {
+function AppContent() {
+  const insets = useSafeAreaInsets();
   const [screen, setScreen] = useState<Screen>('welcome');
   const [activeTab, setActiveTab] = useState<Tab>('home');
   const [chatInput, setChatInput] = useState('');
@@ -152,8 +154,7 @@ export default function App() {
   const [savedWords, setSavedWords] = useState<string[]>(['usually', 'prefer']);
   const [learnFilter, setLearnFilter] = useState<'Grammar' | 'Listening' | 'Reading'>('Grammar');
 
-  const isMainScreen = screen === 'home' || screen === 'practice' || screen === 'learn' || screen === 'progress' || screen === 'profile';
-  const scrollProps = { showsVerticalScrollIndicator: false, contentContainerStyle: styles.scrollContent };
+  const scrollProps = { showsVerticalScrollIndicator: false, contentContainerStyle: [styles.scrollContent, { paddingBottom: 30 + insets.bottom }] };
 
   const goTab = (tab: Tab) => {
     setActiveTab(tab);
@@ -452,22 +453,30 @@ export default function App() {
   };
 
   return (
-    <View style={styles.appRoot}>
-      <StatusBar barStyle="light-content" backgroundColor={C.bg} />
+    <SafeAreaView style={styles.appRoot} edges={['top', 'left', 'right']}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       {screen === 'welcome' ? renderWelcome() : (
         <>
           <View style={styles.mainContent}>{renderMainContent()}</View>
-          {isMainScreen ? <BottomTabs active={activeTab} onSelect={goTab} /> : null}
+          <BottomTabs active={activeTab} onSelect={goTab} bottomInset={insets.bottom} />
         </>
       )}
-    </View>
+    </SafeAreaView>
+  );
+}
+
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <AppContent />
+    </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
   appRoot: { flex: 1, backgroundColor: C.bg },
   flex: { flex: 1 },
-  mainContent: { flex: 1, paddingTop: Platform.OS === 'android' ? 10 : 48 },
+  mainContent: { flex: 1, paddingTop: 8 },
   scrollContent: { paddingHorizontal: 19, paddingTop: 12, paddingBottom: 30 },
   pressed: { opacity: 0.86, transform: [{ scale: 0.985 }] },
   welcomeBackground: { flex: 1, justifyContent: 'flex-end' },
@@ -581,10 +590,10 @@ const styles = StyleSheet.create({
   profileRowIcon: { width: 39, height: 39, borderRadius: 13, backgroundColor: '#4B301C', alignItems: 'center', justifyContent: 'center' },
   profileRowTitle: { color: C.cream, fontSize: 12, fontWeight: '800' },
   profileRowValue: { color: C.muted, fontSize: 10, marginTop: 3 },
-  tabBar: { minHeight: 72, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingBottom: Platform.OS === 'ios' ? 17 : 7, paddingTop: 8, paddingHorizontal: 7, backgroundColor: '#21140E', borderTopWidth: 1, borderTopColor: '#4B3223' },
+  tabBar: { minHeight: 72, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingTop: 8, paddingHorizontal: 7, backgroundColor: 'rgba(33,20,14,0.84)', borderTopWidth: 1, borderTopColor: 'rgba(244,184,110,0.22)', shadowColor: '#000000', shadowOpacity: 0.18, shadowRadius: 12, shadowOffset: { width: 0, height: -4 }, elevation: 12 },
   tabItem: { alignItems: 'center', justifyContent: 'center', flex: 1, gap: 2 },
   tabIconWrap: { width: 39, height: 31, alignItems: 'center', justifyContent: 'center', borderRadius: 12 },
-  tabIconWrapActive: { backgroundColor: '#4A301D' },
+  tabIconWrapActive: { backgroundColor: 'rgba(244,184,110,0.15)', borderWidth: 1, borderColor: 'rgba(244,184,110,0.34)' },
   tabLabel: { color: C.dim, fontSize: 9, fontWeight: '600' },
   tabLabelActive: { color: C.gold, fontWeight: '800' },
   screenHeader: { height: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
