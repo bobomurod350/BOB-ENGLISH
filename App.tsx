@@ -201,7 +201,7 @@ function AppContent() {
       <View style={styles.welcomeOverlay} />
       <View style={styles.welcomeContent}>
         <View style={styles.brandMark}><Icon name="pulse" size={34} color={C.gold} /></View>
-        <Text style={styles.brandTitle}>EnglishTalk <Text style={{ color: C.gold }}>AI</Text></Text>
+        <Text style={styles.brandTitle}>BOB <Text style={{ color: C.gold }}>ENGLISH</Text></Text>
         <Text style={styles.brandSubtitle}>Your personal AI English tutor</Text>
         <View style={styles.welcomePoints}>
           {[
@@ -454,7 +454,7 @@ function AppContent() {
 
   return (
     <SafeAreaView style={styles.appRoot} edges={['top', 'left', 'right']}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <StatusBar barStyle="light-content" />
       {screen === 'welcome' ? renderWelcome() : (
         <>
           <View style={styles.mainContent}>{renderMainContent()}</View>
