@@ -55,7 +55,7 @@ export function AnimatedMicrophoneButton({
   const haloOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.35, 0] });
 
   return (
-    <View style={[styles.wrapper, style]}>
+    <View style={[styles.wrapper, style, { minWidth: buttonSize, minHeight: buttonSize }]}>
       <View style={{ width: buttonSize, height: buttonSize, alignItems: 'center', justifyContent: 'center' }}>
         {isRecordingPreview && !disabled ? (
           <Animated.View
