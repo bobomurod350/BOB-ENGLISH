@@ -48,12 +48,12 @@ function AppButton({ title, onPress, icon, secondary = false, compact = false }:
       accessibilityRole="button"
       accessibilityLabel={title}
       accessibilityHint={secondary ? 'Performs the secondary action.' : 'Activates this action.'}
-      style={({ pressed }) => [
-      styles.button,
-      secondary && styles.buttonSecondary,
-      compact && styles.buttonCompact,
-      pressed && styles.pressed,
-    ]}>
+      style={[
+        styles.button,
+        secondary && styles.buttonSecondary,
+        compact && styles.buttonCompact,
+      ]}
+    >
       <Text style={[styles.buttonText, secondary && styles.buttonTextSecondary, compact && styles.buttonTextCompact]}>{title}</Text>
       {icon ? <Icon name={icon} size={18} color={secondary ? C.gold : '#2B180D'} /> : null}
     </AnimatedPressable>
@@ -132,7 +132,7 @@ function FeatureTile({ icon, title, subtitle, onPress }: { icon: IconName; title
       accessibilityRole="button"
       accessibilityLabel={`${title}. ${subtitle}`}
       accessibilityHint="Opens this learning activity."
-      style={({ pressed }) => [styles.featureTile, pressed && styles.pressed]}
+      style={styles.featureTile}
     >
       <View style={styles.featureIcon}><Icon name={icon} size={23} color={C.gold} /></View>
       <Text style={styles.featureTitle}>{title}</Text>
@@ -148,7 +148,7 @@ function ScenarioCard({ icon, title, detail, onPress, tint = C.card2 }: { icon: 
       accessibilityRole="button"
       accessibilityLabel={title}
       accessibilityHint={detail}
-      style={({ pressed }) => [styles.scenarioCard, { backgroundColor: tint }, pressed && styles.pressed]}
+      style={[styles.scenarioCard, { backgroundColor: tint }]}
     >
       <View style={styles.scenarioIcon}><Icon name={icon} size={24} color={C.gold} /></View>
       <View style={styles.scenarioCopy}>
@@ -713,7 +713,6 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   mainContent: { flex: 1, width: '100%', maxWidth: 720, alignSelf: 'center', paddingTop: 4 },
   scrollContent: { paddingTop: 10, paddingBottom: 28 },
-  pressed: { opacity: 0.86, transform: [{ scale: 0.985 }] },
   welcomeBackground: { flex: 1, justifyContent: 'center' },
   welcomeOverlay: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(18,9,4,0.60)' },
   welcomeContent: { paddingHorizontal: 26, paddingBottom: 32, alignItems: 'flex-start', flexGrow: 1, justifyContent: 'flex-end' },
