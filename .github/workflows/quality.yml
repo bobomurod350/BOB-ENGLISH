@@ -48,7 +48,6 @@ jobs:
       - name: Install Android SDK packages for Expo SDK 58
         shell: bash
         run: |
-          yes | sdkmanager --licenses >/dev/null
           sdkmanager --install \
             "platform-tools" \
             "platforms;android-37" \
