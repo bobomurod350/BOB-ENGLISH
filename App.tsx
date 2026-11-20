@@ -154,7 +154,16 @@ function AppContent() {
   const navigate = useCallback((next: Screen) => {
     const current = screenRef.current;
     if (current === next) return;
-    if (current !== 'welcome') historyRef.current.push(current);
+
+    const isDestinationMainTab = (['home', 'practice', 'learn', 'progress', 'profile'] as const).includes(next as Tab);
+    if (isDestinationMainTab) {
+      // Opening a primary tab is equivalent to selecting it from the tab bar.
+      historyRef.current = [];
+      setActiveTab(next as Tab);
+    } else if (current !== 'welcome') {
+      historyRef.current.push(current);
+    }
+
     screenRef.current = next;
     setScreen(next);
     Keyboard.dismiss();
@@ -163,6 +172,9 @@ function AppContent() {
   const goBack = useCallback(() => {
     const previous = historyRef.current.pop();
     const destination = previous || activeTab;
+    if ((['home', 'practice', 'learn', 'progress', 'profile'] as const).includes(destination as Tab)) {
+      setActiveTab(destination as Tab);
+    }
     screenRef.current = destination;
     setScreen(destination);
     Keyboard.dismiss();
@@ -226,7 +238,7 @@ function AppContent() {
   const renderWelcome = () => (
     <ImageBackground source={EMMA} resizeMode="cover" style={styles.welcomeBackground}>
       <View style={styles.welcomeOverlay} />
-      <ScrollView contentContainerStyle={[styles.welcomeContent, { paddingTop: Math.max(24, insets.top + 16), paddingBottom: Math.max(28, insets.bottom + 24) }]} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.welcomeContent, { paddingTop: 24, paddingBottom: Math.max(28, insets.bottom + 24) }]} showsVerticalScrollIndicator={false}>
         <View style={styles.brandMark}><Icon name="pulse" size={34} color={C.gold} /></View>
         <Text style={styles.brandTitle}>BOB <Text style={{ color: C.gold }}>ENGLISH</Text></Text>
         <Text style={styles.brandSubtitle}>Your personal AI English tutor</Text>
@@ -380,7 +392,7 @@ function AppContent() {
   const renderChat = () => (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}>
       <View style={styles.chatHeader}>
-        <Pressable onPress={() => navigate('practice')} style={styles.backButton}><Icon name="chevron-back" size={22} /></Pressable>
+        <Pressable onPress={goBack} style={styles.backButton}><Icon name="chevron-back" size={22} /></Pressable>
         <Avatar size={40} />
         <View style={{ flex: 1, marginLeft: 10 }}><Text style={styles.chatHeaderTitle}>Emma <Text style={styles.chatHeaderAI}>(AI Tutor)</Text></Text><View style={styles.onlineRow}><View style={styles.onlineDot} /><Text style={styles.onlineText}>Online · {scenario}</Text></View></View>
         <Pressable style={styles.chatHeaderAction} onPress={() => navigate('voice')}><Icon name="call-outline" size={21} color={C.gold} /></Pressable>
@@ -475,8 +487,11 @@ function AppContent() {
   };
 
   const isMainTab = (['home', 'practice', 'learn', 'progress', 'profile'] as Screen[]).includes(screen);
+  const safeAreaEdges = (isMainTab || screen === 'welcome')
+    ? ['top', 'left', 'right'] as const
+    : ['top', 'left', 'right', 'bottom'] as const;
   return (
-    <SafeAreaView style={styles.appRoot} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={styles.appRoot} edges={safeAreaEdges}>
       <StatusBar barStyle="light-content" backgroundColor={C.bg} />
       {screen === 'welcome' ? renderWelcome() : <View style={[styles.mainContent, { paddingTop: shortScreen ? 2 : 6 }]}>{renderMainContent()}</View>}
       {isMainTab ? <BottomTabs active={activeTab} onSelect={goTab} bottomInset={insets.bottom} /> : null}
