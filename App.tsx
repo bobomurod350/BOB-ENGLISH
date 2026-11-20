@@ -402,7 +402,7 @@ function AppContent() {
         <Pressable style={styles.chatHeaderAction} onPress={() => navigate('voice')}><Icon name="call-outline" size={21} color={C.gold} /></Pressable>
         <Pressable style={styles.chatHeaderAction} onPress={() => Alert.alert('Conversation', 'Your practice conversation is saved in this demo session.')}><Icon name="ellipsis-vertical" size={19} color={C.cream} /></Pressable>
       </View>
-      <ScrollView style={styles.chatScroll} contentContainerStyle={styles.chatMessages} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets={Platform.OS === "ios"} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.chatScroll} contentContainerStyle={styles.chatMessages} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <Image source={EMMA} style={styles.chatHeroImage} />
         <View style={styles.chatWelcomePill}><View style={styles.onlineDot} /><Text style={styles.chatWelcomeText}>Emma · Your English speaking partner</Text></View>
         {chatMessages.map((message) => <View key={message.id} style={[styles.messageRow, message.from === 'you' && styles.messageRowYou]}>
@@ -496,7 +496,7 @@ function AppContent() {
     : ['top', 'left', 'right', 'bottom'];
   return (
     <SafeAreaView style={styles.appRoot} edges={safeAreaEdges}>
-      <StatusBar barStyle="light-content" backgroundColor={C.bg} />
+      <StatusBar barStyle="light-content" />
       {screen === 'welcome' ? renderWelcome() : <View style={[styles.mainContent, { paddingTop: shortScreen ? 2 : 6 }]}>{renderMainContent()}</View>}
       {isMainTab ? <BottomTabs active={activeTab} onSelect={goTab} bottomInset={insets.bottom} /> : null}
     </SafeAreaView>
