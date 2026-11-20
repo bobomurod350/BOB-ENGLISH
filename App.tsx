@@ -867,7 +867,7 @@ const styles = StyleSheet.create({
   quickReplyText: { color: C.cream, fontSize: 9, fontWeight: '700' },
   composerWrap: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 12, paddingTop: 8, paddingBottom: 7, borderTopWidth: 1, borderTopColor: '#3D2A1D' },
   composerAdd: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#372416', alignItems: 'center', justifyContent: 'center' },
-  composerInput: { flex: 1, height: 44, borderRadius: 22, backgroundColor: '#302015', borderWidth: 1, borderColor: '#58402E', paddingHorizontal: 15, color: C.cream, fontSize: 12 },
+  composerInput: { flex: 1, minWidth: 44, height: 44, borderRadius: 22, backgroundColor: '#302015', borderWidth: 1, borderColor: '#58402E', paddingHorizontal: 15, color: C.cream, fontSize: 12 },
   composerMic: { width: 38, height: 38, borderRadius: 19, backgroundColor: C.gold, alignItems: 'center', justifyContent: 'center' },
   sendButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#D9944B', alignItems: 'center', justifyContent: 'center' },
   demoNotice: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingBottom: 7, paddingTop: 2 },
