@@ -25,6 +25,8 @@ export function AnimatedIconButton({
   const palette = tone === 'gold'
     ? { background: '#3A271A', icon: '#F4B86E' }
     : { background: '#382317', icon: '#FFF2E2' };
+  // Keep the actual Pressable bounds accessible even with a compact custom size.
+  const touchTargetSize = Math.max(44, size);
 
   return (
     <AnimatedPressable
@@ -38,13 +40,18 @@ export function AnimatedIconButton({
       style={[
         styles.button,
         {
-          width: size, height: size, minWidth: size, minHeight: size,
-          borderRadius: borderRadius ?? size / 2,
           backgroundColor: backgroundColor ?? palette.background,
           borderColor: 'rgba(244,184,110,0.22)',
         },
         disabled && styles.disabled,
         style,
+        {
+          width: touchTargetSize,
+          height: touchTargetSize,
+          minWidth: 44,
+          minHeight: 44,
+          borderRadius: borderRadius ?? touchTargetSize / 2,
+        },
       ]}
     >
       <Ionicons name={name} size={iconSize} color={disabled ? '#967E6A' : (iconColor ?? palette.icon)} />

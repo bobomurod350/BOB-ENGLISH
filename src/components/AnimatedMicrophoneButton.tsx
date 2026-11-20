@@ -3,7 +3,7 @@ import { Animated, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-na
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import AnimatedPressable, { AnimatedPressableProps } from './AnimatedPressable';
 
-export type MicrophonePreviewState = 'idle' | 'pressed' | 'recording-preview';
+export type MicrophonePreviewState = 'idle' | 'recording-preview';
 
 export interface AnimatedMicrophoneButtonProps extends Omit<AnimatedPressableProps, 'children' | 'style' | 'onPressIn' | 'onPressOut'> {
   /** Visual-only state. No microphone permission or audio capture is performed. */

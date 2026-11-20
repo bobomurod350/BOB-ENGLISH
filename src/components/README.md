@@ -39,7 +39,7 @@ import { AnimatedIconButton } from './AnimatedIconButton';
 />
 ```
 
-Props: `name` (Ionicons name), required `accessibilityLabel`, `iconSize?: number` (22), `tone?: 'gold' | 'cream'`, `size?: number` (48), `backgroundColor?`, `iconColor?`, `borderRadius?`, `disabled?`, and standard Pressable props.
+Props: `name` (Ionicons name), required `accessibilityLabel`, `iconSize?: number` (22), `tone?: 'gold' | 'cream'`, `size?: number` (48), `backgroundColor?`, `iconColor?`, `borderRadius?`, `disabled?`, and standard Pressable props. The interactive target never renders smaller than 44×44 points, even when a smaller `size` is supplied.
 
 ## AnimatedTabItem
 
@@ -73,7 +73,7 @@ const [micState, setMicState] = useState<MicrophonePreviewState>('idle');
 />
 ```
 
-States: `idle`, `pressed` (touch feedback), `recording-preview`. The preview state uses a green accent and subtle pulse only. It does not request permission, access the microphone, or record audio.
+States: `idle` and `recording-preview`. Touch feedback is handled by `AnimatedPressable`. The preview state uses a green accent and subtle pulse only. It does not request permission, access the microphone, or record audio.
 
 ## Example bottom navigation
 
