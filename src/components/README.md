@@ -24,7 +24,7 @@ Extends React Native `PressableProps` (except `style`) and adds:
 - `friction?: number` — 18
 - `style?: StyleProp<ViewStyle> | (({ pressed }) => StyleProp<ViewStyle>)`
 
-Uses spring scale/opacity feedback, defaults `hitSlop` to 4 points, applies a 44×44 minimum target, supports disabled and accessibility state, and forwards normal Pressable props/callbacks.
+Uses spring scale/opacity feedback, defaults `hitSlop` to 4 points, and enforces a 44×44 minimum target after caller styles (including style callbacks). Supports disabled and accessibility state, and forwards normal Pressable props/callbacks. Supply an `accessibilityRole` and meaningful `accessibilityLabel` for each use.
 
 ## AnimatedIconButton
 
@@ -56,7 +56,7 @@ import AnimatedTabItem, { AppTab, TAB_ITEMS } from './AnimatedTabItem';
 ))}
 ```
 
-Supported tab keys: `home`, `practice`, `learn`, `progress`, `profile`. The icon background, label emphasis, and gold selection indicator animate on selection. Exposes tab role and selected accessibility state.
+Supported tab keys: `home`, `practice`, `learn`, `progress`, `profile`. The icon background, label emphasis, and gold selection indicator animate on selection. Exposes tab role, label and selected/disabled accessibility state. Disabled tabs are non-interactive and visually de-emphasized.
 
 ## AnimatedMicrophoneButton
 
@@ -73,7 +73,7 @@ const [micState, setMicState] = useState<MicrophonePreviewState>('idle');
 />
 ```
 
-States: `idle` and `recording-preview`. Touch feedback is handled by `AnimatedPressable`. The preview state uses a green accent and subtle pulse only. It does not request permission, access the microphone, or record audio.
+States: `idle` and `recording-preview`. Touch feedback is handled by `AnimatedPressable`. The preview state uses a green accent and subtle pulse only. A disabled button is non-interactive, visually de-emphasized, and stops its pulse. It does not request permission, access the microphone, or record audio. The rendered touch target is at least 44×44 points for all `size` values.
 
 ## Example bottom navigation
 
@@ -105,4 +105,4 @@ export function BottomNavigation() {
 - Built-in React Native `Animated` and `Pressable` only.
 - Existing `@react-native-vector-icons/ionicons` package only.
 - No package, lockfile, Expo config, existing asset, or App.tsx changes.
-- Icon buttons provide 48×48 points by default; generic pressable has a 44×44 minimum.
+- Icon buttons provide 48×48 points by default; generic pressable enforces a 44×44 minimum after supplied styles.

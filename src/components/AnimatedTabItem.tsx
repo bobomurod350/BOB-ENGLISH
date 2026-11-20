@@ -57,7 +57,7 @@ export function AnimatedTabItem({
       pressedOpacity={0.86}
       style={styles.touchTarget}
     >
-      <View style={styles.content}>
+      <View style={[styles.content, disabled && styles.disabled]}>
         <Animated.View style={[
           styles.iconContainer,
           { backgroundColor: iconBackground, transform: [{ scale: iconScale }] },
@@ -85,6 +85,7 @@ export default AnimatedTabItem;
 const styles = StyleSheet.create({
   touchTarget: { flex: 1, minWidth: 52, minHeight: 56, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 2 },
   content: { minHeight: 54, alignItems: 'center', justifyContent: 'center', gap: 2 },
+  disabled: { opacity: 0.48 },
   iconContainer: { width: 36, height: 30, alignItems: 'center', justifyContent: 'center', borderRadius: 12 },
   label: { fontSize: 10, fontWeight: '600', textAlign: 'center' },
   labelSelected: { fontWeight: '800' },

@@ -43,8 +43,8 @@ export function AnimatedIconButton({
           backgroundColor: backgroundColor ?? palette.background,
           borderColor: 'rgba(244,184,110,0.22)',
         },
-        disabled && styles.disabled,
         style,
+        disabled && styles.disabled,
         {
           width: touchTargetSize,
           height: touchTargetSize,

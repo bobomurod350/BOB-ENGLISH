@@ -19,17 +19,19 @@ export function AnimatedMicrophoneButton({
   state = 'idle', onPress, accessibilityLabel, size = 82, style,
   showStatus = true, disabled = false, ...pressableProps
 }: AnimatedMicrophoneButtonProps) {
-  const transition = useRef(new Animated.Value(state === 'recording-preview' ? 1 : 0)).current;
+  const buttonSize = Math.max(44, size);
+  const isRecordingPreview = state === 'recording-preview';
+  const transition = useRef(new Animated.Value(isRecordingPreview ? 1 : 0)).current;
   const pulse = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const colorTransition = Animated.spring(transition, {
-      toValue: state === 'recording-preview' ? 1 : 0,
+      toValue: isRecordingPreview ? 1 : 0,
       tension: 180, friction: 18, useNativeDriver: false,
     });
     colorTransition.start();
 
-    if (state === 'recording-preview') {
+    if (isRecordingPreview && !disabled) {
       const loop = Animated.loop(Animated.sequence([
         Animated.timing(pulse, { toValue: 1, duration: 850, useNativeDriver: true }),
         Animated.timing(pulse, { toValue: 0, duration: 850, useNativeDriver: true }),
@@ -41,7 +43,7 @@ export function AnimatedMicrophoneButton({
     pulse.stopAnimation();
     pulse.setValue(0);
     return () => colorTransition.stop();
-  }, [pulse, state, transition]);
+  }, [disabled, isRecordingPreview, pulse, transition]);
 
   const backgroundColor = transition.interpolate({
     inputRange: [0, 1], outputRange: ['#F4B86E', '#7AD09B'],
@@ -53,15 +55,15 @@ export function AnimatedMicrophoneButton({
   const haloOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.35, 0] });
 
   return (
-    <View style={[styles.wrapper, style]}>
-      <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-        {state === 'recording-preview' ? (
+    <View style={[styles.wrapper, style, disabled && styles.disabled]}>
+      <View style={{ width: buttonSize, height: buttonSize, alignItems: 'center', justifyContent: 'center' }}>
+        {isRecordingPreview && !disabled ? (
           <Animated.View
             pointerEvents="none"
             style={[
               styles.halo,
               {
-                width: size, height: size, borderRadius: size / 2,
+                width: buttonSize, height: buttonSize, borderRadius: buttonSize / 2,
                 borderColor: '#7AD09B', opacity: haloOpacity,
                 transform: [{ scale: haloScale }],
               },
@@ -77,22 +79,22 @@ export function AnimatedMicrophoneButton({
             state === 'recording-preview' ? 'Stop recording preview' : 'Start recording preview'
           )}
           accessibilityHint="Changes the visual microphone preview only. No audio is recorded."
-          accessibilityState={{ disabled, selected: state === 'recording-preview' }}
+          accessibilityState={{ disabled, selected: isRecordingPreview }}
           pressedScale={0.91}
           style={[
             styles.button,
             {
-              width: size, height: size, borderRadius: size / 2,
+              width: buttonSize, height: buttonSize, borderRadius: buttonSize / 2,
               backgroundColor, borderColor,
             },
           ]}
         >
-          <Ionicons name={state === 'recording-preview' ? 'stop' : 'mic'} size={Math.round(size * 0.39)} color="#2B180D" />
+          <Ionicons name={state === 'recording-preview' ? 'stop' : 'mic'} size={Math.round(buttonSize * 0.39)} color="#2B180D" />
         </AnimatedPressable>
       </View>
       {showStatus ? (
         <Text style={styles.status}>
-          {state === 'recording-preview' ? 'Recording preview' : 'Tap to speak'}
+          {isRecordingPreview ? 'Recording preview' : 'Tap to speak'}
         </Text>
       ) : null}
     </View>
@@ -103,6 +105,7 @@ export default AnimatedMicrophoneButton;
 
 const styles = StyleSheet.create({
   wrapper: { alignItems: 'center', justifyContent: 'center' },
+  disabled: { opacity: 0.48 },
   halo: { position: 'absolute', borderWidth: 2 },
   button: {
     alignItems: 'center', justifyContent: 'center', borderWidth: 6,

@@ -39,6 +39,7 @@ export const AnimatedPressable = forwardRef<React.ElementRef<typeof Pressable>, 
     const resolveStyle = useCallback(({ pressed }: { pressed: boolean }) => [
       styles.touchTarget,
       typeof style === 'function' ? style({ pressed }) : style,
+      styles.minimumTouchTarget,
       animatedStyle,
     ], [animatedStyle, style]);
 
@@ -70,7 +71,9 @@ export const AnimatedPressable = forwardRef<React.ElementRef<typeof Pressable>, 
 );
 
 const styles = StyleSheet.create({
-  touchTarget: { minWidth: 44, minHeight: 44, justifyContent: 'center' },
+  touchTarget: { justifyContent: 'center' },
+  // Applied after caller styles so width/height overrides cannot shrink the hit target.
+  minimumTouchTarget: { minWidth: 44, minHeight: 44 },
 });
 
 export default AnimatedPressable;
