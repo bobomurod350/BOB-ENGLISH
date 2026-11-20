@@ -1,56 +1,44 @@
-# EnglishTalk AI
+# BOB ENGLISH
 
-An Android-first English speaking practice app, built as a standalone Expo / React Native project. The initial visual direction follows the selected warm café reference: espresso brown surfaces, cream typography, brass-gold accents, soft rounded cards, and Emma as the AI conversation partner.
+An Android-first English speaking practice app, built as a standalone Expo / React Native project. Its visual direction follows the selected warm café reference: espresso brown surfaces, cream typography, brass-gold accents, soft rounded cards, and Emma as the first-person AI conversation partner.
 
-## Current prototype
+## Prototype screens
+- Welcome and learning dashboard
+- Persistent bottom navigation: Home, Practice, Learn, Progress, Profile
+- AI chat and voice conversation preview
+- Real-life scenarios: café, airport, job interview, hotel, university, restaurant
+- Learning path, grammar, vocabulary, corrections, progress, and profile
 
-- Welcome screen
-- Home dashboard and learning shortcuts
-- Practice scenarios (café, airport, job interview, hotel, university, restaurant)
-- First-person AI tutor chat experience (local demo replies for now)
-- Voice conversation screen and listening state UI
-- Learning path, grammar overview, vocabulary, corrections, and progress screens
-- Functional bottom navigation, buttons, quick replies, text composer, save-word controls, and scenario routing
+## Current interaction scope
+Navigation, buttons, scenario launch, text composer, local sample replies, quick replies, vocabulary save/unsave, lesson navigation, and microphone-state preview are implemented. The bottom navigation is present across the app and respects device safe areas.
 
-## Important implementation note
-
-This is the first UI prototype. The conversation replies are local demo responses, and the microphone screen is a visual interaction preview. A real AI model, speech-to-text, text-to-speech, account system, and cloud progress storage have not been connected yet. The app is structured so those services can be added through a secure backend; API keys should never be placed in the mobile app bundle.
+The conversation replies are local demo responses. The microphone screen is a visual interaction preview. A real AI model, speech-to-text, text-to-speech, account system, and cloud progress storage have not been connected yet. API keys must remain on a secure backend and must never be placed in the mobile app bundle.
 
 ## Requirements
-
-- Node.js 22.13+ (Node 24 LTS is also suitable)
+- Node.js 22.13 or newer
 - npm
-- Android phone with Expo Go, or Android Studio emulator
+- Android phone with a compatible Expo Go version, or Android Studio emulator
 
 ## Run on Windows
 
 ```powershell
-Set-Location D:\EnglishTalk-AI
 npm install
 npx expo start
 ```
 
-Then scan the QR code using Expo Go on Android. To launch an Android emulator, run:
+Scan the QR code using Expo Go on Android.
+
+## Checks
 
 ```powershell
-npx expo start --android
-```
-
-## Check TypeScript
-
-```powershell
-npx tsc --noEmit
+npm run typecheck
+npx expo-doctor
 ```
 
 ## Design tokens
-
-- Background: `#170E09`
-- Surfaces: `#21140D`, `#2B1B12`, `#382317`
-- Text: `#FFF2E2`
-- Accent: `#F4B86E`
-- Secondary accent: `#D98E42`
-- Success: `#7AD09B`
-
-## Next engineering milestone
-
-Replace the local demo reply function with a protected backend endpoint, then connect microphone capture, speech recognition, and voice playback. Keep all provider credentials on the server.
+- Background: #170E09
+- Surfaces: #21140D, #2B1B12, #382317
+- Text: #FFF2E2
+- Accent: #F4B86E
+- Secondary accent: #D98E42
+- Success: #7AD09B
