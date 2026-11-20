@@ -55,7 +55,7 @@ export function AnimatedMicrophoneButton({
   const haloOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.35, 0] });
 
   return (
-    <View style={[styles.wrapper, style, disabled && styles.disabled]}>
+    <View style={[styles.wrapper, style]}>
       <View style={{ width: buttonSize, height: buttonSize, alignItems: 'center', justifyContent: 'center' }}>
         {isRecordingPreview && !disabled ? (
           <Animated.View
@@ -94,7 +94,7 @@ export function AnimatedMicrophoneButton({
       </View>
       {showStatus ? (
         <Text style={styles.status}>
-          {isRecordingPreview ? 'Recording preview' : 'Tap to speak'}
+          {disabled ? 'Unavailable' : isRecordingPreview ? 'Recording preview' : 'Tap to speak'}
         </Text>
       ) : null}
     </View>
@@ -105,7 +105,6 @@ export default AnimatedMicrophoneButton;
 
 const styles = StyleSheet.create({
   wrapper: { alignItems: 'center', justifyContent: 'center' },
-  disabled: { opacity: 0.48 },
   halo: { position: 'absolute', borderWidth: 2 },
   button: {
     alignItems: 'center', justifyContent: 'center', borderWidth: 6,

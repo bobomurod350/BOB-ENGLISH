@@ -24,7 +24,7 @@ Extends React Native `PressableProps` (except `style`) and adds:
 - `friction?: number` — 18
 - `style?: StyleProp<ViewStyle> | (({ pressed }) => StyleProp<ViewStyle>)`
 
-Uses spring scale/opacity feedback, defaults `hitSlop` to 4 points, and enforces a 44×44 minimum target after caller styles (including style callbacks). Supports disabled and accessibility state, and forwards normal Pressable props/callbacks. Supply an `accessibilityRole` and meaningful `accessibilityLabel` for each use.
+Uses spring scale/opacity feedback, defaults `hitSlop` to 4 points, and enforces a 44×44 minimum target after caller styles (including style callbacks). Supports disabled and accessibility state, dims disabled controls after the press animation, and forwards normal Pressable props/callbacks. Supply an `accessibilityRole` and meaningful `accessibilityLabel` for each use.
 
 ## AnimatedIconButton
 
@@ -56,7 +56,7 @@ import AnimatedTabItem, { AppTab, TAB_ITEMS } from './AnimatedTabItem';
 ))}
 ```
 
-Supported tab keys: `home`, `practice`, `learn`, `progress`, `profile`. The icon background, label emphasis, and gold selection indicator animate on selection. Exposes tab role, label and selected/disabled accessibility state. Disabled tabs are non-interactive and visually de-emphasized.
+Supported tab keys: `home`, `practice`, `learn`, `progress`, `profile`. The icon background, label emphasis, and gold selection indicator animate on selection. Exposes tab role, label and selected/disabled accessibility state. Disabled tabs are non-interactive and visually de-emphasized by the shared primitive.
 
 ## AnimatedMicrophoneButton
 

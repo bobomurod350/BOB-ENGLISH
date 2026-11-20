@@ -41,7 +41,8 @@ export const AnimatedPressable = forwardRef<React.ElementRef<typeof Pressable>, 
       typeof style === 'function' ? style({ pressed }) : style,
       styles.minimumTouchTarget,
       animatedStyle,
-    ], [animatedStyle, style]);
+      disabled && styles.disabled,
+    ], [animatedStyle, disabled, style]);
 
     const handlePressIn = useCallback((event: GestureResponderEvent) => {
       if (!disabled) animateTo(1);
@@ -74,6 +75,7 @@ const styles = StyleSheet.create({
   touchTarget: { justifyContent: 'center' },
   // Applied after caller styles so width/height overrides cannot shrink the hit target.
   minimumTouchTarget: { minWidth: 44, minHeight: 44 },
+  disabled: { opacity: 0.48 },
 });
 
 export default AnimatedPressable;

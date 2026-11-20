@@ -44,7 +44,6 @@ export function AnimatedIconButton({
           borderColor: 'rgba(244,184,110,0.22)',
         },
         style,
-        disabled && styles.disabled,
         {
           width: touchTargetSize,
           height: touchTargetSize,
@@ -61,7 +60,6 @@ export function AnimatedIconButton({
 
 const styles = StyleSheet.create({
   button: { alignItems: 'center', justifyContent: 'center', borderWidth: StyleSheet.hairlineWidth },
-  disabled: { opacity: 0.48 },
 });
 
 export default AnimatedIconButton;
