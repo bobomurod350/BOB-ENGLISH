@@ -1,11 +1,15 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert, BackHandler, Image, ImageBackground, Keyboard, KeyboardAvoidingView,
-  Platform, Pressable, ScrollView, StatusBar, StyleSheet, Text, TextInput, View,
+  Platform, ScrollView, StatusBar, StyleSheet, Text, TextInput, View,
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
+import AnimatedPressable from './src/components/AnimatedPressable';
+import AnimatedIconButton from './src/components/AnimatedIconButton';
+import AnimatedMicrophoneButton from './src/components/AnimatedMicrophoneButton';
+import AnimatedTabItem, { TAB_ITEMS } from './src/components/AnimatedTabItem';
 
 type IconName = string;
 type Screen = 'welcome' | 'home' | 'practice' | 'learn' | 'progress' | 'profile' | 'chat' | 'voice' | 'vocabulary' | 'correction' | 'lesson';
@@ -39,15 +43,20 @@ function AppButton({ title, onPress, icon, secondary = false, compact = false }:
   title: string; onPress: () => void; icon?: IconName; secondary?: boolean; compact?: boolean;
 }) {
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [
-      styles.button,
-      secondary && styles.buttonSecondary,
-      compact && styles.buttonCompact,
-      pressed && styles.pressed,
-    ]}>
+    <AnimatedPressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      accessibilityHint={secondary ? 'Performs the secondary action.' : 'Activates this action.'}
+      style={[
+        styles.button,
+        secondary && styles.buttonSecondary,
+        compact && styles.buttonCompact,
+      ]}
+    >
       <Text style={[styles.buttonText, secondary && styles.buttonTextSecondary, compact && styles.buttonTextCompact]}>{title}</Text>
       {icon ? <Icon name={icon} size={18} color={secondary ? C.gold : '#2B180D'} /> : null}
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -55,7 +64,16 @@ function SectionTitle({ title, action, onAction }: { title: string; action?: str
   return (
     <View style={styles.sectionTitleRow}>
       <Text style={styles.sectionTitle}>{title}</Text>
-      {action && onAction ? <Pressable onPress={onAction}><Text style={styles.seeAll}>{action}</Text></Pressable> : null}
+      {action && onAction ? (
+        <AnimatedPressable
+          onPress={onAction}
+          accessibilityRole="button"
+          accessibilityLabel={action}
+          accessibilityHint="Opens the related list."
+        >
+          <Text style={styles.seeAll}>{action}</Text>
+        </AnimatedPressable>
+      ) : null}
     </View>
   );
 }
@@ -71,7 +89,16 @@ function ProgressBar({ progress, color = C.gold }: { progress: number; color?: s
 function ScreenHeader({ title, onBack, right }: { title: string; onBack: () => void; right?: React.ReactNode }) {
   return (
     <View style={styles.screenHeader}>
-      <Pressable onPress={onBack} style={styles.backButton}><Icon name="chevron-back" size={22} /></Pressable>
+      <AnimatedIconButton
+        name="chevron-back"
+        accessibilityLabel={`Go back from ${title}`}
+        accessibilityHint="Returns to the previous screen."
+        size={44}
+        backgroundColor="#3A271A"
+        iconColor={C.cream}
+        style={styles.backButton}
+        onPress={onBack}
+      />
       <Text style={styles.screenTitle}>{title}</Text>
       <View style={styles.headerRight}>{right}</View>
     </View>
@@ -83,50 +110,53 @@ function Avatar({ size = 42 }: { size?: number }) {
 }
 
 function BottomTabs({ active, onSelect, bottomInset = 0 }: { active: Tab; onSelect: (tab: Tab) => void; bottomInset?: number }) {
-  const tabs: { key: Tab; title: string; icon: IconName }[] = [
-    { key: 'home', title: 'Home', icon: 'home-outline' },
-    { key: 'practice', title: 'Practice', icon: 'headset-outline' },
-    { key: 'learn', title: 'Learn', icon: 'book-outline' },
-    { key: 'progress', title: 'Progress', icon: 'stats-chart-outline' },
-    { key: 'profile', title: 'Profile', icon: 'person-outline' },
-  ];
   return (
     <View style={[styles.tabBar, { paddingBottom: Math.max(bottomInset, 8) }]}>
-      {tabs.map((tab) => {
-        const selected = active === tab.key;
-        return (
-          <Pressable key={tab.key} onPress={() => onSelect(tab.key)} style={({ pressed }) => [styles.tabItem, pressed && styles.pressed]}>
-            <View style={[styles.tabIconWrap, selected && styles.tabIconWrapActive]}>
-              <Icon name={tab.icon} size={20} color={selected ? C.gold : C.dim} />
-            </View>
-            <Text style={[styles.tabLabel, selected && styles.tabLabelActive]}>{tab.title}</Text>
-          </Pressable>
-        );
-      })}
+      {TAB_ITEMS.map((tab) => (
+        <AnimatedTabItem
+          key={tab}
+          tab={tab}
+          selected={active === tab}
+          onPress={onSelect}
+          accessibilityLabel={`Navigate to ${tab} tab`}
+        />
+      ))}
     </View>
   );
 }
 
 function FeatureTile({ icon, title, subtitle, onPress }: { icon: IconName; title: string; subtitle: string; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.featureTile, pressed && styles.pressed]}>
+    <AnimatedPressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${title}. ${subtitle}`}
+      accessibilityHint="Opens this learning activity."
+      style={styles.featureTile}
+    >
       <View style={styles.featureIcon}><Icon name={icon} size={23} color={C.gold} /></View>
       <Text style={styles.featureTitle}>{title}</Text>
       <Text style={styles.featureSubtitle}>{subtitle}</Text>
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
 function ScenarioCard({ icon, title, detail, onPress, tint = C.card2 }: { icon: IconName; title: string; detail: string; onPress: () => void; tint?: string }) {
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.scenarioCard, { backgroundColor: tint }, pressed && styles.pressed]}>
+    <AnimatedPressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      accessibilityHint={detail}
+      style={[styles.scenarioCard, { backgroundColor: tint }]}
+    >
       <View style={styles.scenarioIcon}><Icon name={icon} size={24} color={C.gold} /></View>
       <View style={styles.scenarioCopy}>
         <Text style={styles.scenarioTitle}>{title}</Text>
         <Text style={styles.scenarioDetail}>{detail}</Text>
       </View>
       <Icon name="chevron-forward" size={18} color={C.gold} />
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -141,7 +171,7 @@ function AppContent() {
   const screenRef = useRef<Screen>('welcome');
   const historyRef = useRef<Screen[]>([]);
   const [chatInput, setChatInput] = useState('');
-  const [recording, setRecording] = useState(false);
+  const [microphonePreviewActive, setMicrophonePreviewActive] = useState(false);
   const [scenario, setScenario] = useState('Café Conversation');
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     { id: 1, from: 'emma', text: "Hi! I'm Emma. I work at this café. I really love coffee and meeting new people. So, what do you usually drink at a café?", time: '9:41' },
@@ -184,6 +214,18 @@ function AppContent() {
     Keyboard.dismiss();
     return true;
   }, [activeTab]);
+
+  const returnToTextChat = useCallback(() => {
+    // Remove the chat entry only when Voice was opened directly from chat.
+    // Earlier navigation history remains available for the normal back action.
+    if (historyRef.current[historyRef.current.length - 1] === 'chat') {
+      historyRef.current.pop();
+    }
+    setMicrophonePreviewActive(false);
+    screenRef.current = 'chat';
+    setScreen('chat');
+    Keyboard.dismiss();
+  }, []);
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -263,9 +305,23 @@ function AppContent() {
           <Text style={styles.greeting}>Hi there! <Text style={{ color: C.gold }}>✦</Text></Text>
           <Text style={styles.mutedText}>Ready to practise English?</Text>
         </View>
-        <Pressable onPress={() => navigate('profile')} style={styles.streakPill}><Icon name="flame" size={16} color={C.gold} /><Text style={styles.streakText}>7 days</Text></Pressable>
+        <AnimatedPressable
+          onPress={() => navigate('profile')}
+          accessibilityRole="button"
+          accessibilityLabel="7 day learning streak"
+          accessibilityHint="Opens your profile."
+          style={styles.streakPill}
+        >
+          <Icon name="flame" size={16} color={C.gold} /><Text style={styles.streakText}>7 days</Text>
+        </AnimatedPressable>
       </View>
-      <Pressable onPress={() => navigate('lesson')} style={styles.continueCard}>
+      <AnimatedPressable
+        onPress={() => navigate('lesson')}
+        accessibilityRole="button"
+        accessibilityLabel="Continue Café Conversation, lesson 3 of 5"
+        accessibilityHint="Opens your current lesson."
+        style={styles.continueCard}
+      >
         <ImageBackground source={EMMA} imageStyle={styles.continueImage} style={styles.continueImageWrap}>
           <View style={styles.continueShade} />
           <View style={styles.continueContent}>
@@ -276,7 +332,7 @@ function AppContent() {
             <View style={styles.continueBottom}><Text style={styles.continueMeta}>3 / 5 steps completed</Text><View style={styles.playCircle}><Icon name="play" size={18} color="#2B180D" /></View></View>
           </View>
         </ImageBackground>
-      </Pressable>
+      </AnimatedPressable>
       <SectionTitle title="Explore learning" />
       <View style={styles.featureGrid}>
         <FeatureTile icon="chatbubble-ellipses-outline" title="AI Chat" subtitle="Talk freely" onPress={() => openChat('Free Conversation')} />
@@ -286,11 +342,17 @@ function AppContent() {
         <FeatureTile icon="headset-outline" title="Listening" subtitle="Train your ear" onPress={() => navigate('learn')} />
         <FeatureTile icon="mic-outline" title="Speaking" subtitle="Speak clearly" onPress={() => navigate('voice')} />
       </View>
-      <Pressable onPress={() => navigate('progress')} style={styles.goalCard}>
+      <AnimatedPressable
+        onPress={() => navigate('progress')}
+        accessibilityRole="button"
+        accessibilityLabel="Today's goal. Have a 5-minute conversation in English. 60 percent complete."
+        accessibilityHint="Opens your learning progress."
+        style={styles.goalCard}
+      >
         <View style={styles.goalIcon}><Icon name="trophy-outline" size={24} color={C.gold} /></View>
         <View style={styles.goalCopy}><Text style={styles.goalTitle}>Today's Goal</Text><Text style={styles.goalText}>Have a 5-minute conversation in English</Text><ProgressBar progress={60} color={C.green} /></View>
         <View style={styles.goalPercent}><Text style={styles.goalPercentText}>60%</Text></View>
-      </Pressable>
+      </AnimatedPressable>
       <SectionTitle title="Try a real conversation" action="See all" onAction={() => navigate('practice')} />
       <View style={styles.inlineScenarios}>
         <ScenarioCard icon="cafe-outline" title="At a café" detail="Order a drink and chat" onPress={() => openChat('Café Conversation')} />
@@ -318,12 +380,27 @@ function AppContent() {
     <ScrollView {...scrollProps}>
       <View style={styles.pageIntro}><Text style={styles.eyebrow}>LEARN STEP BY STEP</Text><Text style={styles.pageHeading}>Your learning path</Text><Text style={styles.mutedText}>Short lessons that help you speak more naturally.</Text></View>
       <View style={styles.levelCard}><View style={styles.levelCircle}><Text style={styles.levelText}>A2</Text><Text style={styles.levelSub}>ELEMENTARY</Text></View><View style={styles.levelInfo}><Text style={styles.levelTitle}>You're making progress</Text><Text style={styles.mutedText}>9 of 16 lessons completed</Text><ProgressBar progress={56} /><Text style={styles.levelHint}>Next milestone: B1 Intermediate</Text></View></View>
-      <View style={styles.filterRow}>{(['Grammar', 'Listening', 'Reading'] as const).map((filter) => <Pressable key={filter} onPress={() => setLearnFilter(filter)} style={[styles.filterChip, learnFilter === filter && styles.filterChipActive]}><Text style={[styles.filterText, learnFilter === filter && styles.filterTextActive]}>{filter}</Text></Pressable>)}</View>
+      <View style={styles.filterRow}>{(['Grammar', 'Listening', 'Reading'] as const).map((filter) => <AnimatedPressable
+          key={filter}
+          onPress={() => setLearnFilter(filter)}
+          accessibilityRole="button"
+          accessibilityLabel={`${filter} lessons filter`}
+          accessibilityState={{ selected: learnFilter === filter }}
+          accessibilityHint={`Shows ${filter.toLowerCase()} learning content.`}
+          style={[styles.filterChip, learnFilter === filter && styles.filterChipActive]}
+        ><Text style={[styles.filterText, learnFilter === filter && styles.filterTextActive]}>{filter}</Text></AnimatedPressable>)}</View>
       {learnFilter === 'Grammar' ? (
         <>
           <View style={styles.lessonFeature}><View style={styles.lessonFeatureIcon}><Icon name="book-open-outline" size={28} color={C.gold} /></View><View style={{ flex: 1 }}><Text style={styles.cardKicker}>GRAMMAR FOCUS</Text><Text style={styles.lessonFeatureTitle}>Present Simple</Text><Text style={styles.lessonFeatureDetail}>For habits, routines and general truths.</Text></View><Icon name="chevron-forward" size={20} color={C.gold} /></View>
           <SectionTitle title="Lesson outline" />
-          {['What is the Present Simple?', 'How to use it', 'Positive and negative sentences', 'Questions and short answers', 'Practice with Emma'].map((item, i) => <Pressable key={item} onPress={() => i === 4 ? openChat('Present Simple Practice') : navigate('correction')} style={styles.outlineRow}><View style={styles.outlineNumber}><Text style={styles.outlineNumberText}>{i + 1}</Text></View><Text style={styles.outlineText}>{item}</Text><Icon name="chevron-forward" size={18} color={C.dim} /></Pressable>)}
+          {['What is the Present Simple?', 'How to use it', 'Positive and negative sentences', 'Questions and short answers', 'Practice with Emma'].map((item, i) => <AnimatedPressable
+            key={item}
+            onPress={() => i === 4 ? openChat('Present Simple Practice') : navigate('correction')}
+            accessibilityRole="button"
+            accessibilityLabel={item}
+            accessibilityHint={i === 4 ? 'Starts a practice conversation with Emma.' : 'Opens the grammar explanation.'}
+            style={styles.outlineRow}
+          ><View style={styles.outlineNumber}><Text style={styles.outlineNumberText}>{i + 1}</Text></View><Text style={styles.outlineText}>{item}</Text><Icon name="chevron-forward" size={18} color={C.dim} /></AnimatedPressable>)}
         </>
       ) : (
         <>
@@ -372,7 +449,28 @@ function AppContent() {
   );
 
   function ProfileRow({ icon, title, value, onPress }: { icon: IconName; title: string; value: string; onPress?: () => void }) {
-    return <Pressable onPress={onPress} style={styles.profileRow}><View style={styles.profileRowIcon}><Icon name={icon} size={20} color={C.gold} /></View><View style={{ flex: 1 }}><Text style={styles.profileRowTitle}>{title}</Text><Text style={styles.profileRowValue}>{value}</Text></View><Icon name="chevron-forward" size={18} color={C.dim} /></Pressable>;
+    const content = (
+      <>
+        <View style={styles.profileRowIcon}><Icon name={icon} size={20} color={C.gold} /></View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.profileRowTitle}>{title}</Text>
+          <Text style={styles.profileRowValue}>{value}</Text>
+        </View>
+        {onPress ? <Icon name="chevron-forward" size={18} color={C.dim} /> : null}
+      </>
+    );
+    if (!onPress) return <View style={styles.profileRow}>{content}</View>;
+    return (
+      <AnimatedPressable
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={`${title}: ${value}`}
+        accessibilityHint={title === 'Saved vocabulary' ? 'Opens your saved vocabulary.' : 'Opens this preference.'}
+        style={styles.profileRow}
+      >
+        {content}
+      </AnimatedPressable>
+    );
   }
 
   const renderVocabulary = () => {
@@ -388,7 +486,16 @@ function AppContent() {
         <ScreenHeader title="Vocabulary" onBack={goBack} right={<Icon name="search-outline" size={21} color={C.cream} />} />
         <View style={styles.pageIntro}><Text style={styles.eyebrow}>WORDS FROM YOUR JOURNEY</Text><Text style={styles.pageHeading}>Build your vocabulary</Text><Text style={styles.mutedText}>Listen, learn and save useful words.</Text></View>
         <View style={styles.wordSummary}><View><Text style={styles.wordSummaryNumber}>320</Text><Text style={styles.mutedText}>Words learned</Text></View><View style={styles.wordSummaryDivider} /><View><Text style={styles.wordSummaryNumber}>{savedWords.length}</Text><Text style={styles.mutedText}>Saved words</Text></View><View style={styles.wordSummaryDivider} /><View><Text style={styles.wordSummaryNumber}>24</Text><Text style={styles.mutedText}>To review</Text></View></View>
-        {words.map((item) => <View key={item.word} style={styles.wordCard}><View style={styles.wordTop}><View style={{ flex: 1 }}><Text style={styles.wordName}>{item.word}</Text><Text style={styles.wordType}>{item.type}</Text></View><Pressable onPress={() => toggleSaveWord(item.word)} style={styles.wordAction}><Icon name={savedWords.includes(item.word) ? 'bookmark' : 'bookmark-outline'} size={20} color={C.gold} /></Pressable></View><Text style={styles.wordMeaning}>{item.meaning}</Text><View style={styles.wordExample}><Text style={styles.wordExampleLabel}>EXAMPLE</Text><Text style={styles.wordExampleText}>{item.example}</Text></View></View>)}
+        {words.map((item) => <View key={item.word} style={styles.wordCard}><View style={styles.wordTop}><View style={{ flex: 1 }}><Text style={styles.wordName}>{item.word}</Text><Text style={styles.wordType}>{item.type}</Text></View><AnimatedIconButton
+            name={savedWords.includes(item.word) ? 'bookmark' : 'bookmark-outline'}
+            accessibilityLabel={savedWords.includes(item.word) ? `Remove ${item.word} from saved words` : `Save ${item.word}`}
+            accessibilityHint="Updates your saved vocabulary."
+            size={44}
+            backgroundColor="#4C311D"
+            iconColor={C.gold}
+            style={styles.wordAction}
+            onPress={() => toggleSaveWord(item.word)}
+          /></View><Text style={styles.wordMeaning}>{item.meaning}</Text><View style={styles.wordExample}><Text style={styles.wordExampleLabel}>EXAMPLE</Text><Text style={styles.wordExampleText}>{item.example}</Text></View></View>)}
       </ScrollView>
     );
   };
@@ -396,11 +503,38 @@ function AppContent() {
   const renderChat = () => (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}>
       <View style={styles.chatHeader}>
-        <Pressable onPress={goBack} style={styles.backButton}><Icon name="chevron-back" size={22} /></Pressable>
+        <AnimatedIconButton
+          name="chevron-back"
+          accessibilityLabel="Go back from chat"
+          accessibilityHint="Returns to the previous screen."
+          size={44}
+          backgroundColor="#3A271A"
+          iconColor={C.cream}
+          style={styles.backButton}
+          onPress={goBack}
+        />
         <Avatar size={40} />
         <View style={{ flex: 1, marginLeft: 10 }}><Text style={styles.chatHeaderTitle}>Emma <Text style={styles.chatHeaderAI}>(AI Tutor)</Text></Text><View style={styles.onlineRow}><View style={styles.onlineDot} /><Text style={styles.onlineText}>Online · {scenario}</Text></View></View>
-        <Pressable style={styles.chatHeaderAction} onPress={() => navigate('voice')}><Icon name="call-outline" size={21} color={C.gold} /></Pressable>
-        <Pressable style={styles.chatHeaderAction} onPress={() => Alert.alert('Conversation', 'Your practice conversation is saved in this demo session.')}><Icon name="ellipsis-vertical" size={19} color={C.cream} /></Pressable>
+        <AnimatedIconButton
+          name="call-outline"
+          accessibilityLabel="Open voice conversation preview"
+          accessibilityHint="Opens the visual microphone preview. No audio is recorded."
+          size={44}
+          backgroundColor="#3C291D"
+          iconColor={C.gold}
+          style={styles.chatHeaderAction}
+          onPress={() => navigate('voice')}
+        />
+        <AnimatedIconButton
+          name="ellipsis-vertical"
+          accessibilityLabel="Conversation options"
+          accessibilityHint="Shows conversation information."
+          size={44}
+          backgroundColor="#3C291D"
+          iconColor={C.cream}
+          style={styles.chatHeaderAction}
+          onPress={() => Alert.alert('Conversation', 'Your practice conversation is saved in this demo session.')}
+        />
       </View>
       <ScrollView style={styles.chatScroll} contentContainerStyle={styles.chatMessages} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <Image source={EMMA} style={styles.chatHeroImage} />
@@ -414,13 +548,62 @@ function AppContent() {
         </View>)}
       </ScrollView>
       <View style={styles.quickReplyRow}>
-        {['Yes, I do.', 'Not really.', 'What about you?'].map((item) => <Pressable key={item} onPress={() => { setChatInput(item); }} style={styles.quickReply}><Text style={styles.quickReplyText}>{item}</Text></Pressable>)}
+        {['Yes, I do.', 'Not really.', 'What about you?'].map((item) => (
+          <AnimatedPressable
+            key={item}
+            onPress={() => setChatInput(item)}
+            accessibilityRole="button"
+            accessibilityLabel={`Use quick reply: ${item}`}
+            accessibilityHint="Fills the message composer with this reply."
+            style={styles.quickReply}
+          >
+            <Text style={styles.quickReplyText}>{item}</Text>
+          </AnimatedPressable>
+        ))}
       </View>
       <View style={styles.composerWrap}>
-        <Pressable style={styles.composerAdd} onPress={() => navigate('vocabulary')}><Icon name="add" size={23} color={C.gold} /></Pressable>
-        <TextInput value={chatInput} onChangeText={setChatInput} placeholder="Type in English..." placeholderTextColor={C.dim} style={styles.composerInput} returnKeyType="send" onSubmitEditing={sendMessage} />
-        <Pressable style={styles.composerMic} onPress={() => navigate('voice')}><Icon name="mic" size={21} color="#2B180D" /></Pressable>
-        <Pressable style={styles.sendButton} onPress={sendMessage}><Icon name="send" size={18} color="#2B180D" /></Pressable>
+        <AnimatedIconButton
+          name="add"
+          accessibilityLabel="Open vocabulary"
+          accessibilityHint="Opens your vocabulary list."
+          size={44}
+          backgroundColor="#372416"
+          iconColor={C.gold}
+          style={styles.composerAdd}
+          onPress={() => navigate('vocabulary')}
+        />
+        <TextInput
+          value={chatInput}
+          onChangeText={setChatInput}
+          placeholder="Type in English..."
+          placeholderTextColor={C.dim}
+          accessibilityLabel="Message Emma"
+          accessibilityHint="Type an English message. Press send to add it to the conversation."
+          style={styles.composerInput}
+          returnKeyType="send"
+          onSubmitEditing={sendMessage}
+        />
+        <AnimatedIconButton
+          name="mic"
+          accessibilityLabel="Open microphone preview"
+          accessibilityHint="Opens a visual-only microphone preview. No audio is recorded."
+          size={44}
+          backgroundColor={C.gold}
+          iconColor="#2B180D"
+          style={styles.composerMic}
+          onPress={() => navigate('voice')}
+        />
+        <AnimatedIconButton
+          name="send"
+          accessibilityLabel="Send message"
+          accessibilityHint="Sends your message to the conversation."
+          size={44}
+          backgroundColor="#D9944B"
+          iconColor="#2B180D"
+          disabled={!chatInput.trim()}
+          style={styles.sendButton}
+          onPress={sendMessage}
+        />
       </View>
       <View style={styles.demoNotice}><Icon name="information-circle-outline" size={14} color={C.dim} /><Text style={styles.demoNoticeText}>Preview conversation · AI connection comes next</Text></View>
     </KeyboardAvoidingView>
@@ -429,19 +612,44 @@ function AppContent() {
   const renderVoice = () => (
     <View style={styles.voiceScreen}>
       <ScreenHeader title="Voice conversation" onBack={goBack} right={<Icon name="ellipsis-horizontal" size={20} color={C.cream} />} />
-      <View style={styles.voiceProgress}><Text style={styles.cardKicker}>{scenario.toUpperCase()}</Text><Text style={styles.voiceStep}>Speak naturally with Emma</Text><ProgressBar progress={60} /></View>
+      <View style={styles.voiceProgress}><Text style={styles.cardKicker}>{scenario.toUpperCase()}</Text><Text style={styles.voiceStep}>Voice interaction preview</Text><ProgressBar progress={60} /></View>
       <View style={styles.voiceCenter}>
-        <View style={[styles.voiceAvatarHalo, recording && styles.voiceAvatarHaloActive]}><Image source={EMMA} style={styles.voiceAvatar} /></View>
-        <View style={styles.waveRow}>{Array.from({ length: 23 }).map((_, index) => <View key={index} style={[styles.waveBar, { height: 10 + ((index * 17) % 33), opacity: recording ? 1 : 0.5 }]} />)}</View>
-        <Text style={styles.voiceStatus}>{recording ? 'Listening to you...' : "I'm listening when you're ready"}</Text>
-        <Text style={styles.voiceHint}>{recording ? 'Tap the button to finish this practice turn.' : 'Tap the microphone and speak in English.'}</Text>
+        <View style={[styles.voiceAvatarHalo, microphonePreviewActive && styles.voiceAvatarHaloActive]}><Image source={EMMA} style={styles.voiceAvatar} /></View>
+        <View style={styles.waveRow}>{Array.from({ length: 23 }).map((_, index) => <View key={index} style={[styles.waveBar, { height: 10 + ((index * 17) % 33), opacity: microphonePreviewActive ? 1 : 0.5 }]} />)}</View>
+        <Text style={styles.voiceStatus}>{microphonePreviewActive ? 'Microphone preview active' : 'Microphone control ready'}</Text>
+        <Text style={styles.voiceHint}>{'Visual preview only. No microphone access or audio capture.'}</Text>
       </View>
       <View style={styles.voiceControls}>
-        <Pressable style={styles.voiceSmallButton} onPress={() => Alert.alert('Keyboard input', 'Return to chat to type your answer.')}><Icon name="keypad-outline" size={22} color={C.cream} /></Pressable>
-        <Pressable onPress={() => setRecording((value) => !value)} style={[styles.voiceMicButton, recording && styles.voiceMicButtonActive]}><Icon name={recording ? 'stop' : 'mic'} size={34} color="#2B180D" /></Pressable>
-        <Pressable style={styles.voiceSmallButton} onPress={() => Alert.alert('Listening tip', 'Speak slowly and clearly. You can repeat a sentence as many times as you need.')}><Icon name="options-outline" size={22} color={C.cream} /></Pressable>
+        <AnimatedIconButton
+          name="keypad-outline"
+          accessibilityLabel="Return to text chat"
+          accessibilityHint="Shows the text chat so you can type your answer."
+          size={48}
+          backgroundColor="#3A271A"
+          iconColor={C.cream}
+          style={styles.voiceSmallButton}
+          onPress={returnToTextChat}
+        />
+        <AnimatedMicrophoneButton
+          state={microphonePreviewActive ? 'recording-preview' : 'idle'}
+          onPress={() => setMicrophonePreviewActive(value => !value)}
+          size={82}
+          showStatus={false}
+          accessibilityLabel={microphonePreviewActive ? 'Stop microphone visual preview' : 'Start microphone visual preview'}
+          accessibilityHint="Toggles a visual-only microphone animation. No microphone permission or audio capture is used."
+        />
+        <AnimatedIconButton
+          name="options-outline"
+          accessibilityLabel="Listening tips"
+          accessibilityHint="Shows a general speaking tip."
+          size={48}
+          backgroundColor="#3A271A"
+          iconColor={C.cream}
+          style={styles.voiceSmallButton}
+          onPress={() => Alert.alert('Listening tip', 'Speak slowly and clearly. You can repeat a sentence as many times as you need.')}
+        />
       </View>
-      <View style={styles.demoNotice}><Icon name="information-circle-outline" size={14} color={C.dim} /><Text style={styles.demoNoticeText}>Microphone interface preview · Speech engine not connected yet</Text></View>
+      <View style={styles.demoNotice}><Icon name="information-circle-outline" size={14} color={C.dim} /><Text style={styles.demoNoticeText}>Visual microphone preview only · No audio is recorded</Text></View>
     </View>
   );
 
@@ -517,7 +725,6 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   mainContent: { flex: 1, width: '100%', maxWidth: 720, alignSelf: 'center', paddingTop: 4 },
   scrollContent: { paddingTop: 10, paddingBottom: 28 },
-  pressed: { opacity: 0.86, transform: [{ scale: 0.985 }] },
   welcomeBackground: { flex: 1, justifyContent: 'center' },
   welcomeOverlay: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(18,9,4,0.60)' },
   welcomeContent: { paddingHorizontal: 26, paddingBottom: 32, alignItems: 'flex-start', flexGrow: 1, justifyContent: 'flex-end' },
@@ -630,11 +837,6 @@ const styles = StyleSheet.create({
   profileRowTitle: { color: C.cream, fontSize: 12, fontWeight: '800' },
   profileRowValue: { color: C.muted, fontSize: 10, marginTop: 3 },
   tabBar: { minHeight: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingTop: 8, paddingHorizontal: 7, backgroundColor: 'rgba(33,20,14,0.84)', borderTopWidth: 1, borderTopColor: 'rgba(244,184,110,0.22)', shadowColor: '#000000', shadowOpacity: 0.18, shadowRadius: 12, shadowOffset: { width: 0, height: -4 }, elevation: 12 },
-  tabItem: { alignItems: 'center', justifyContent: 'center', flex: 1, gap: 2 },
-  tabIconWrap: { width: 39, height: 31, alignItems: 'center', justifyContent: 'center', borderRadius: 12 },
-  tabIconWrapActive: { backgroundColor: 'rgba(244,184,110,0.15)', borderWidth: 1, borderColor: 'rgba(244,184,110,0.34)' },
-  tabLabel: { color: C.dim, fontSize: 9, fontWeight: '600' },
-  tabLabelActive: { color: C.gold, fontWeight: '800' },
   screenHeader: { minHeight: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   backButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#3A271A', alignItems: 'center', justifyContent: 'center' },
   screenTitle: { color: C.white, fontSize: 15, fontWeight: '800', flex: 1, textAlign: 'center' },
@@ -677,7 +879,7 @@ const styles = StyleSheet.create({
   quickReplyText: { color: C.cream, fontSize: 9, fontWeight: '700' },
   composerWrap: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 12, paddingTop: 8, paddingBottom: 7, borderTopWidth: 1, borderTopColor: '#3D2A1D' },
   composerAdd: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#372416', alignItems: 'center', justifyContent: 'center' },
-  composerInput: { flex: 1, height: 43, borderRadius: 22, backgroundColor: '#302015', borderWidth: 1, borderColor: '#58402E', paddingHorizontal: 15, color: C.cream, fontSize: 12 },
+  composerInput: { flex: 1, minWidth: 44, height: 44, borderRadius: 22, backgroundColor: '#302015', borderWidth: 1, borderColor: '#58402E', paddingHorizontal: 15, color: C.cream, fontSize: 12 },
   composerMic: { width: 38, height: 38, borderRadius: 19, backgroundColor: C.gold, alignItems: 'center', justifyContent: 'center' },
   sendButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#D9944B', alignItems: 'center', justifyContent: 'center' },
   demoNotice: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingBottom: 7, paddingTop: 2 },
@@ -695,8 +897,6 @@ const styles = StyleSheet.create({
   voiceHint: { color: C.muted, fontSize: 11, marginTop: 6, textAlign: 'center' },
   voiceControls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-evenly', paddingBottom: 27 },
   voiceSmallButton: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#3A271A', borderWidth: 1, borderColor: C.line, alignItems: 'center', justifyContent: 'center' },
-  voiceMicButton: { width: 82, height: 82, borderRadius: 41, backgroundColor: C.gold, borderWidth: 6, borderColor: '#5A3C25', alignItems: 'center', justifyContent: 'center', shadowColor: C.gold, shadowOpacity: 0.25, shadowRadius: 16, elevation: 8 },
-  voiceMicButtonActive: { backgroundColor: C.green, borderColor: '#284A35' },
   correctionCard: { backgroundColor: C.card, padding: 17, borderRadius: 18, borderColor: C.line, borderWidth: 1, marginBottom: 13 },
   correctionLabel: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   correctionLabelText: { color: C.muted, fontSize: 9, fontWeight: '900', letterSpacing: 1 },
