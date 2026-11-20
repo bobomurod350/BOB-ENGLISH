@@ -50,9 +50,15 @@ jobs:
         run: |
           sdkmanager --install \
             "platform-tools" \
-            "platforms;android-37" \
+            "platforms;android-37.0" \
             "build-tools;37.0.0" \
             "ndk;27.1.12297006"
+
+          # API 37 is published under android-37.0; expose the integer alias
+          # used by Gradle's compileSdk 37 lookup.
+          if [ ! -e "$ANDROID_HOME/platforms/android-37" ]; then
+            ln -s android-37.0 "$ANDROID_HOME/platforms/android-37"
+          fi
 
       - name: Install locked npm dependencies
         run: npm ci
