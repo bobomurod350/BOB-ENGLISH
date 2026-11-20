@@ -1,19 +1,10 @@
-import React, { useState } from 'react';
-import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Alert,
-  Image,
-  ImageBackground,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+  Alert, BackHandler, Image, ImageBackground, Keyboard, KeyboardAvoidingView,
+  Platform, Pressable, ScrollView, StatusBar, StyleSheet, Text, TextInput, View,
+  useWindowDimensions,
 } from 'react-native';
+import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 
 type IconName = string;
@@ -139,10 +130,16 @@ function ScenarioCard({ icon, title, detail, onPress, tint = C.card2 }: { icon: 
   );
 }
 
+
 function AppContent() {
   const insets = useSafeAreaInsets();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const compactWidth = windowWidth < 360;
+  const shortScreen = windowHeight < 700;
   const [screen, setScreen] = useState<Screen>('welcome');
   const [activeTab, setActiveTab] = useState<Tab>('home');
+  const screenRef = useRef<Screen>('welcome');
+  const historyRef = useRef<Screen[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [recording, setRecording] = useState(false);
   const [scenario, setScenario] = useState('Café Conversation');
@@ -154,21 +151,68 @@ function AppContent() {
   const [savedWords, setSavedWords] = useState<string[]>(['usually', 'prefer']);
   const [learnFilter, setLearnFilter] = useState<'Grammar' | 'Listening' | 'Reading'>('Grammar');
 
-  const scrollProps = { showsVerticalScrollIndicator: false, contentContainerStyle: [styles.scrollContent, { paddingBottom: 30 + insets.bottom }] };
+  const navigate = useCallback((next: Screen) => {
+    const current = screenRef.current;
+    const isDestinationMainTab = (['home', 'practice', 'learn', 'progress', 'profile'] as const).includes(next as Tab);
+
+    if (isDestinationMainTab) {
+      // Keep the highlighted tab in sync, even when the screen is already visible.
+      setActiveTab(next as Tab);
+    }
+    if (current === next) return;
+
+    if (isDestinationMainTab) {
+      // Opening a primary tab is equivalent to selecting it from the tab bar.
+      historyRef.current = [];
+    } else if (current !== 'welcome') {
+      historyRef.current.push(current);
+    }
+
+    screenRef.current = next;
+    setScreen(next);
+    Keyboard.dismiss();
+  }, []);
+
+  const goBack = useCallback(() => {
+    const previous = historyRef.current.pop();
+    const destination = previous || activeTab;
+    if ((['home', 'practice', 'learn', 'progress', 'profile'] as const).includes(destination as Tab)) {
+      setActiveTab(destination as Tab);
+    }
+    screenRef.current = destination;
+    setScreen(destination);
+    Keyboard.dismiss();
+    return true;
+  }, [activeTab]);
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      const current = screenRef.current;
+      if (current === 'welcome') return false;
+      if (current === activeTab) return false;
+      return goBack();
+    });
+    return () => subscription.remove();
+  }, [activeTab, goBack]);
+
+  const scrollProps = {
+    keyboardShouldPersistTaps: 'handled' as const,
+    showsVerticalScrollIndicator: false,
+    contentContainerStyle: [styles.scrollContent, { paddingHorizontal: compactWidth ? 15 : Math.min(24, Math.max(18, windowWidth * 0.05)), paddingBottom: 28 }],
+  };
 
   const goTab = (tab: Tab) => {
+    historyRef.current = [];
     setActiveTab(tab);
+    screenRef.current = tab;
     setScreen(tab);
+    Keyboard.dismiss();
   };
 
   const openChat = (nextScenario = 'Free Conversation') => {
     setScenario(nextScenario);
-    setChatMessages([
-      { id: Date.now(), from: 'emma', text: nextScenario === 'Café Conversation'
-        ? "Hi! I'm Emma. I work at this café. I love meeting new people. What would you like to drink today?"
-        : `Hi! I'm Emma. Today we're practising: ${nextScenario.toLowerCase()}. I'll speak first, and you can answer me in English. Ready?`, time: 'Now' },
-    ]);
-    setScreen('chat');
+    setChatMessages([{ id: Date.now(), from: 'emma', text: nextScenario === 'Café Conversation' ? "Hi! I'm Emma. I work at this café. I love meeting new people. What would you like to drink today?" : `Hi! I'm Emma. Today we're practising: ${nextScenario.toLowerCase()}. I'll speak first, and you can answer me in English. Ready?`, time: 'Now' }]);
+    navigate('chat');
   };
 
   const localReply = (message: string) => {
@@ -181,40 +225,33 @@ function AppContent() {
   };
 
   const sendMessage = () => {
-    const text = chatInput.trim();
-    if (!text) return;
+    const message = chatInput.trim();
+    if (!message) return;
     const now = new Date();
     const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-    setChatMessages((current) => [...current, { id: Date.now(), from: 'you', text, time }]);
+    setChatMessages(current => [...current, { id: Date.now(), from: 'you', text: message, time }]);
     setChatInput('');
-    setTimeout(() => {
-      setChatMessages((current) => [...current, { id: Date.now() + 1, from: 'emma', text: localReply(text), time }]);
-    }, 550);
+    Keyboard.dismiss();
+    setTimeout(() => setChatMessages(current => [...current, { id: Date.now() + 1, from: 'emma', text: localReply(message), time }]), 550);
   };
 
   const toggleSaveWord = (word: string) => {
-    setSavedWords((words) => words.includes(word) ? words.filter((item) => item !== word) : [...words, word]);
+    setSavedWords(words => words.includes(word) ? words.filter(item => item !== word) : [...words, word]);
   };
 
   const renderWelcome = () => (
     <ImageBackground source={EMMA} resizeMode="cover" style={styles.welcomeBackground}>
       <View style={styles.welcomeOverlay} />
-      <View style={styles.welcomeContent}>
+      <ScrollView contentContainerStyle={[styles.welcomeContent, { paddingTop: 24, paddingBottom: Math.max(28, insets.bottom + 24) }]} showsVerticalScrollIndicator={false}>
         <View style={styles.brandMark}><Icon name="pulse" size={34} color={C.gold} /></View>
         <Text style={styles.brandTitle}>BOB <Text style={{ color: C.gold }}>ENGLISH</Text></Text>
         <Text style={styles.brandSubtitle}>Your personal AI English tutor</Text>
         <View style={styles.welcomePoints}>
-          {[
-            'Talk naturally with AI',
-            'Real-life conversations',
-            'Get corrections and tips',
-            'Build vocabulary & grammar',
-            'Improve your pronunciation',
-          ].map((item) => <View key={item} style={styles.welcomePoint}><Icon name="checkmark-circle" size={18} color={C.gold} /><Text style={styles.welcomePointText}>{item}</Text></View>)}
+          {['Talk naturally with AI', 'Real-life conversations', 'Get corrections and tips', 'Build vocabulary & grammar', 'Improve your pronunciation'].map(item => <View key={item} style={styles.welcomePoint}><Icon name="checkmark-circle" size={18} color={C.gold} /><Text style={styles.welcomePointText}>{item}</Text></View>)}
         </View>
-        <AppButton title="Start Learning" icon="arrow-forward" onPress={() => setScreen('home')} />
+        <AppButton title="Start Learning" icon="arrow-forward" onPress={() => { historyRef.current = []; setActiveTab('home'); screenRef.current = 'home'; setScreen('home'); }} />
         <Text style={styles.welcomeFooter}>A little English every day makes a big difference.</Text>
-      </View>
+      </ScrollView>
     </ImageBackground>
   );
 
@@ -226,9 +263,9 @@ function AppContent() {
           <Text style={styles.greeting}>Hi there! <Text style={{ color: C.gold }}>✦</Text></Text>
           <Text style={styles.mutedText}>Ready to practise English?</Text>
         </View>
-        <Pressable onPress={() => setScreen('profile')} style={styles.streakPill}><Icon name="flame" size={16} color={C.gold} /><Text style={styles.streakText}>7 days</Text></Pressable>
+        <Pressable onPress={() => navigate('profile')} style={styles.streakPill}><Icon name="flame" size={16} color={C.gold} /><Text style={styles.streakText}>7 days</Text></Pressable>
       </View>
-      <Pressable onPress={() => setScreen('lesson')} style={styles.continueCard}>
+      <Pressable onPress={() => navigate('lesson')} style={styles.continueCard}>
         <ImageBackground source={EMMA} imageStyle={styles.continueImage} style={styles.continueImageWrap}>
           <View style={styles.continueShade} />
           <View style={styles.continueContent}>
@@ -243,18 +280,18 @@ function AppContent() {
       <SectionTitle title="Explore learning" />
       <View style={styles.featureGrid}>
         <FeatureTile icon="chatbubble-ellipses-outline" title="AI Chat" subtitle="Talk freely" onPress={() => openChat('Free Conversation')} />
-        <FeatureTile icon="briefcase-outline" title="Scenarios" subtitle="Real-life" onPress={() => setScreen('practice')} />
-        <FeatureTile icon="book-outline" title="Vocabulary" subtitle="New words" onPress={() => setScreen('vocabulary')} />
-        <FeatureTile icon="library-outline" title="Grammar" subtitle="With examples" onPress={() => setScreen('correction')} />
-        <FeatureTile icon="headset-outline" title="Listening" subtitle="Train your ear" onPress={() => setScreen('learn')} />
-        <FeatureTile icon="mic-outline" title="Speaking" subtitle="Speak clearly" onPress={() => setScreen('voice')} />
+        <FeatureTile icon="briefcase-outline" title="Scenarios" subtitle="Real-life" onPress={() => navigate('practice')} />
+        <FeatureTile icon="book-outline" title="Vocabulary" subtitle="New words" onPress={() => navigate('vocabulary')} />
+        <FeatureTile icon="library-outline" title="Grammar" subtitle="With examples" onPress={() => navigate('correction')} />
+        <FeatureTile icon="headset-outline" title="Listening" subtitle="Train your ear" onPress={() => navigate('learn')} />
+        <FeatureTile icon="mic-outline" title="Speaking" subtitle="Speak clearly" onPress={() => navigate('voice')} />
       </View>
-      <Pressable onPress={() => setScreen('progress')} style={styles.goalCard}>
+      <Pressable onPress={() => navigate('progress')} style={styles.goalCard}>
         <View style={styles.goalIcon}><Icon name="trophy-outline" size={24} color={C.gold} /></View>
         <View style={styles.goalCopy}><Text style={styles.goalTitle}>Today's Goal</Text><Text style={styles.goalText}>Have a 5-minute conversation in English</Text><ProgressBar progress={60} color={C.green} /></View>
         <View style={styles.goalPercent}><Text style={styles.goalPercentText}>60%</Text></View>
       </Pressable>
-      <SectionTitle title="Try a real conversation" action="See all" onAction={() => setScreen('practice')} />
+      <SectionTitle title="Try a real conversation" action="See all" onAction={() => navigate('practice')} />
       <View style={styles.inlineScenarios}>
         <ScenarioCard icon="cafe-outline" title="At a café" detail="Order a drink and chat" onPress={() => openChat('Café Conversation')} />
         <ScenarioCard icon="airplane-outline" title="At the airport" detail="Check in and ask questions" onPress={() => openChat('Airport Travel')} />
@@ -286,7 +323,7 @@ function AppContent() {
         <>
           <View style={styles.lessonFeature}><View style={styles.lessonFeatureIcon}><Icon name="book-open-outline" size={28} color={C.gold} /></View><View style={{ flex: 1 }}><Text style={styles.cardKicker}>GRAMMAR FOCUS</Text><Text style={styles.lessonFeatureTitle}>Present Simple</Text><Text style={styles.lessonFeatureDetail}>For habits, routines and general truths.</Text></View><Icon name="chevron-forward" size={20} color={C.gold} /></View>
           <SectionTitle title="Lesson outline" />
-          {['What is the Present Simple?', 'How to use it', 'Positive and negative sentences', 'Questions and short answers', 'Practice with Emma'].map((item, i) => <Pressable key={item} onPress={() => i === 4 ? openChat('Present Simple Practice') : setScreen('correction')} style={styles.outlineRow}><View style={styles.outlineNumber}><Text style={styles.outlineNumberText}>{i + 1}</Text></View><Text style={styles.outlineText}>{item}</Text><Icon name="chevron-forward" size={18} color={C.dim} /></Pressable>)}
+          {['What is the Present Simple?', 'How to use it', 'Positive and negative sentences', 'Questions and short answers', 'Practice with Emma'].map((item, i) => <Pressable key={item} onPress={() => i === 4 ? openChat('Present Simple Practice') : navigate('correction')} style={styles.outlineRow}><View style={styles.outlineNumber}><Text style={styles.outlineNumberText}>{i + 1}</Text></View><Text style={styles.outlineText}>{item}</Text><Icon name="chevron-forward" size={18} color={C.dim} /></Pressable>)}
         </>
       ) : (
         <>
@@ -328,7 +365,7 @@ function AppContent() {
       <ProfileRow icon="language-outline" title="Learning language" value="English" />
       <ProfileRow icon="bar-chart-outline" title="My level" value="A2 · Elementary" />
       <ProfileRow icon="notifications-outline" title="Daily reminders" value="On" />
-      <ProfileRow icon="bookmark-outline" title="Saved vocabulary" value={`${savedWords.length} words`} onPress={() => setScreen('vocabulary')} />
+      <ProfileRow icon="bookmark-outline" title="Saved vocabulary" value={`${savedWords.length} words`} onPress={() => navigate('vocabulary')} />
       <ProfileRow icon="settings-outline" title="Settings" value="Personalise your app" onPress={() => Alert.alert('Settings', 'More settings will be added in the next build.')} />
       <View style={styles.tipCard}><Icon name="heart-outline" size={20} color={C.gold} /><Text style={styles.tipText}>Your goal is progress, not perfection. Keep speaking!</Text></View>
     </ScrollView>
@@ -348,7 +385,7 @@ function AppContent() {
     ];
     return (
       <ScrollView {...scrollProps}>
-        <ScreenHeader title="Vocabulary" onBack={() => setScreen('home')} right={<Icon name="search-outline" size={21} color={C.cream} />} />
+        <ScreenHeader title="Vocabulary" onBack={goBack} right={<Icon name="search-outline" size={21} color={C.cream} />} />
         <View style={styles.pageIntro}><Text style={styles.eyebrow}>WORDS FROM YOUR JOURNEY</Text><Text style={styles.pageHeading}>Build your vocabulary</Text><Text style={styles.mutedText}>Listen, learn and save useful words.</Text></View>
         <View style={styles.wordSummary}><View><Text style={styles.wordSummaryNumber}>320</Text><Text style={styles.mutedText}>Words learned</Text></View><View style={styles.wordSummaryDivider} /><View><Text style={styles.wordSummaryNumber}>{savedWords.length}</Text><Text style={styles.mutedText}>Saved words</Text></View><View style={styles.wordSummaryDivider} /><View><Text style={styles.wordSummaryNumber}>24</Text><Text style={styles.mutedText}>To review</Text></View></View>
         {words.map((item) => <View key={item.word} style={styles.wordCard}><View style={styles.wordTop}><View style={{ flex: 1 }}><Text style={styles.wordName}>{item.word}</Text><Text style={styles.wordType}>{item.type}</Text></View><Pressable onPress={() => toggleSaveWord(item.word)} style={styles.wordAction}><Icon name={savedWords.includes(item.word) ? 'bookmark' : 'bookmark-outline'} size={20} color={C.gold} /></Pressable></View><Text style={styles.wordMeaning}>{item.meaning}</Text><View style={styles.wordExample}><Text style={styles.wordExampleLabel}>EXAMPLE</Text><Text style={styles.wordExampleText}>{item.example}</Text></View></View>)}
@@ -357,15 +394,15 @@ function AppContent() {
   };
 
   const renderChat = () => (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}>
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}>
       <View style={styles.chatHeader}>
-        <Pressable onPress={() => setScreen('practice')} style={styles.backButton}><Icon name="chevron-back" size={22} /></Pressable>
+        <Pressable onPress={goBack} style={styles.backButton}><Icon name="chevron-back" size={22} /></Pressable>
         <Avatar size={40} />
         <View style={{ flex: 1, marginLeft: 10 }}><Text style={styles.chatHeaderTitle}>Emma <Text style={styles.chatHeaderAI}>(AI Tutor)</Text></Text><View style={styles.onlineRow}><View style={styles.onlineDot} /><Text style={styles.onlineText}>Online · {scenario}</Text></View></View>
-        <Pressable style={styles.chatHeaderAction} onPress={() => setScreen('voice')}><Icon name="call-outline" size={21} color={C.gold} /></Pressable>
+        <Pressable style={styles.chatHeaderAction} onPress={() => navigate('voice')}><Icon name="call-outline" size={21} color={C.gold} /></Pressable>
         <Pressable style={styles.chatHeaderAction} onPress={() => Alert.alert('Conversation', 'Your practice conversation is saved in this demo session.')}><Icon name="ellipsis-vertical" size={19} color={C.cream} /></Pressable>
       </View>
-      <ScrollView style={styles.chatScroll} contentContainerStyle={styles.chatMessages} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.chatScroll} contentContainerStyle={styles.chatMessages} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets={Platform.OS === "ios"} showsVerticalScrollIndicator={false}>
         <Image source={EMMA} style={styles.chatHeroImage} />
         <View style={styles.chatWelcomePill}><View style={styles.onlineDot} /><Text style={styles.chatWelcomeText}>Emma · Your English speaking partner</Text></View>
         {chatMessages.map((message) => <View key={message.id} style={[styles.messageRow, message.from === 'you' && styles.messageRowYou]}>
@@ -380,9 +417,9 @@ function AppContent() {
         {['Yes, I do.', 'Not really.', 'What about you?'].map((item) => <Pressable key={item} onPress={() => { setChatInput(item); }} style={styles.quickReply}><Text style={styles.quickReplyText}>{item}</Text></Pressable>)}
       </View>
       <View style={styles.composerWrap}>
-        <Pressable style={styles.composerAdd} onPress={() => setScreen('vocabulary')}><Icon name="add" size={23} color={C.gold} /></Pressable>
+        <Pressable style={styles.composerAdd} onPress={() => navigate('vocabulary')}><Icon name="add" size={23} color={C.gold} /></Pressable>
         <TextInput value={chatInput} onChangeText={setChatInput} placeholder="Type in English..." placeholderTextColor={C.dim} style={styles.composerInput} returnKeyType="send" onSubmitEditing={sendMessage} />
-        <Pressable style={styles.composerMic} onPress={() => setScreen('voice')}><Icon name="mic" size={21} color="#2B180D" /></Pressable>
+        <Pressable style={styles.composerMic} onPress={() => navigate('voice')}><Icon name="mic" size={21} color="#2B180D" /></Pressable>
         <Pressable style={styles.sendButton} onPress={sendMessage}><Icon name="send" size={18} color="#2B180D" /></Pressable>
       </View>
       <View style={styles.demoNotice}><Icon name="information-circle-outline" size={14} color={C.dim} /><Text style={styles.demoNoticeText}>Preview conversation · AI connection comes next</Text></View>
@@ -391,7 +428,7 @@ function AppContent() {
 
   const renderVoice = () => (
     <View style={styles.voiceScreen}>
-      <ScreenHeader title="Voice conversation" onBack={() => setScreen('chat')} right={<Icon name="ellipsis-horizontal" size={20} color={C.cream} />} />
+      <ScreenHeader title="Voice conversation" onBack={goBack} right={<Icon name="ellipsis-horizontal" size={20} color={C.cream} />} />
       <View style={styles.voiceProgress}><Text style={styles.cardKicker}>{scenario.toUpperCase()}</Text><Text style={styles.voiceStep}>Speak naturally with Emma</Text><ProgressBar progress={60} /></View>
       <View style={styles.voiceCenter}>
         <View style={[styles.voiceAvatarHalo, recording && styles.voiceAvatarHaloActive]}><Image source={EMMA} style={styles.voiceAvatar} /></View>
@@ -410,7 +447,7 @@ function AppContent() {
 
   const renderCorrection = () => (
     <ScrollView {...scrollProps}>
-      <ScreenHeader title="Correction & tips" onBack={() => setScreen('home')} />
+      <ScreenHeader title="Correction & tips" onBack={goBack} />
       <View style={styles.pageIntro}><Text style={styles.eyebrow}>LEARN FROM YOUR MISTAKES</Text><Text style={styles.pageHeading}>Say it naturally</Text><Text style={styles.mutedText}>A small correction can make a big difference.</Text></View>
       <View style={styles.correctionCard}><View style={styles.correctionLabel}><Icon name="close-circle" size={18} color={C.red} /><Text style={styles.correctionLabelText}>YOUR SENTENCE</Text></View><Text style={styles.correctionSentence}>I usually drink coffee with milk.</Text><View style={styles.correctionDivider} /><View style={styles.correctionLabel}><Icon name="checkmark-circle" size={18} color={C.green} /><Text style={styles.correctionLabelText}>MORE NATURAL</Text></View><Text style={styles.correctedSentence}>I usually have a coffee with milk.</Text></View>
       <View style={styles.tipCard}><Icon name="bulb-outline" size={21} color={C.gold} /><View style={{ flex: 1 }}><Text style={styles.goalTitle}>Why?</Text><Text style={styles.tipText}>Both sentences are understandable. In everyday English, people often say “have a coffee” when they mean drinking one cup.</Text></View></View>
@@ -422,7 +459,7 @@ function AppContent() {
 
   const renderLesson = () => (
     <ScrollView {...scrollProps}>
-      <ScreenHeader title="Café conversation" onBack={() => setScreen('home')} />
+      <ScreenHeader title="Café conversation" onBack={goBack} />
       <ImageBackground source={EMMA} imageStyle={styles.lessonImage} style={styles.lessonImageWrap}><View style={styles.lessonImageShade} /><View style={styles.lessonImageContent}><Text style={styles.cardKicker}>A2 · ELEMENTARY</Text><Text style={styles.lessonHeroTitle}>Ordering at a café</Text><Text style={styles.lessonHeroText}>Learn how to order a drink and make friendly conversation.</Text></View></ImageBackground>
       <View style={styles.lessonProgressRow}><Text style={styles.goalTitle}>Your lesson</Text><Text style={styles.mutedText}>3 / 5 steps</Text></View><ProgressBar progress={60} />
       {[
@@ -435,6 +472,7 @@ function AppContent() {
       <AppButton title="Continue lesson" icon="arrow-forward" onPress={() => openChat('Café Conversation')} />
     </ScrollView>
   );
+
 
   const renderMainContent = () => {
     switch (screen) {
@@ -452,15 +490,15 @@ function AppContent() {
     }
   };
 
+  const isMainTab = (['home', 'practice', 'learn', 'progress', 'profile'] as Screen[]).includes(screen);
+  const safeAreaEdges: ('top' | 'left' | 'right' | 'bottom')[] = (isMainTab || screen === 'welcome')
+    ? ['top', 'left', 'right']
+    : ['top', 'left', 'right', 'bottom'];
   return (
-    <SafeAreaView style={styles.appRoot} edges={['top', 'left', 'right']}>
-      <StatusBar barStyle="light-content" />
-      {screen === 'welcome' ? renderWelcome() : (
-        <>
-          <View style={styles.mainContent}>{renderMainContent()}</View>
-          <BottomTabs active={activeTab} onSelect={goTab} bottomInset={insets.bottom} />
-        </>
-      )}
+    <SafeAreaView style={styles.appRoot} edges={safeAreaEdges}>
+      <StatusBar barStyle="light-content" backgroundColor={C.bg} />
+      {screen === 'welcome' ? renderWelcome() : <View style={[styles.mainContent, { paddingTop: shortScreen ? 2 : 6 }]}>{renderMainContent()}</View>}
+      {isMainTab ? <BottomTabs active={activeTab} onSelect={goTab} bottomInset={insets.bottom} /> : null}
     </SafeAreaView>
   );
 }
@@ -473,15 +511,16 @@ export default function App() {
   );
 }
 
+
 const styles = StyleSheet.create({
   appRoot: { flex: 1, backgroundColor: C.bg },
   flex: { flex: 1 },
-  mainContent: { flex: 1, paddingTop: 8 },
-  scrollContent: { paddingHorizontal: 19, paddingTop: 12, paddingBottom: 30 },
+  mainContent: { flex: 1, width: '100%', maxWidth: 720, alignSelf: 'center', paddingTop: 4 },
+  scrollContent: { paddingTop: 10, paddingBottom: 28 },
   pressed: { opacity: 0.86, transform: [{ scale: 0.985 }] },
-  welcomeBackground: { flex: 1, justifyContent: 'flex-end' },
-  welcomeOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(18,9,4,0.60)' },
-  welcomeContent: { paddingHorizontal: 26, paddingBottom: 42, alignItems: 'flex-start' },
+  welcomeBackground: { flex: 1, justifyContent: 'center' },
+  welcomeOverlay: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(18,9,4,0.60)' },
+  welcomeContent: { paddingHorizontal: 26, paddingBottom: 32, alignItems: 'flex-start', flexGrow: 1, justifyContent: 'flex-end' },
   brandMark: { width: 66, height: 66, borderRadius: 33, backgroundColor: 'rgba(244,184,110,0.15)', borderWidth: 1, borderColor: 'rgba(244,184,110,0.7)', alignItems: 'center', justifyContent: 'center', marginBottom: 22 },
   brandTitle: { color: C.white, fontSize: 34, lineHeight: 40, fontWeight: '800', letterSpacing: -0.7 },
   brandSubtitle: { color: C.cream, fontSize: 16, marginTop: 6 },
@@ -505,7 +544,7 @@ const styles = StyleSheet.create({
   continueCard: { overflow: 'hidden', borderRadius: 20, borderWidth: 1, borderColor: C.line, marginBottom: 24, height: 168, backgroundColor: C.card },
   continueImageWrap: { flex: 1, justifyContent: 'center' },
   continueImage: { opacity: 0.78 },
-  continueShade: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(25,12,6,0.52)' },
+  continueShade: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(25,12,6,0.52)' },
   continueContent: { padding: 17 },
   cardKicker: { color: '#EBC08E', fontSize: 9, letterSpacing: 1.25, fontWeight: '800' },
   continueTitle: { color: C.white, fontSize: 21, fontWeight: '800', marginTop: 5, marginBottom: 3 },
@@ -590,13 +629,13 @@ const styles = StyleSheet.create({
   profileRowIcon: { width: 39, height: 39, borderRadius: 13, backgroundColor: '#4B301C', alignItems: 'center', justifyContent: 'center' },
   profileRowTitle: { color: C.cream, fontSize: 12, fontWeight: '800' },
   profileRowValue: { color: C.muted, fontSize: 10, marginTop: 3 },
-  tabBar: { minHeight: 72, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingTop: 8, paddingHorizontal: 7, backgroundColor: 'rgba(33,20,14,0.84)', borderTopWidth: 1, borderTopColor: 'rgba(244,184,110,0.22)', shadowColor: '#000000', shadowOpacity: 0.18, shadowRadius: 12, shadowOffset: { width: 0, height: -4 }, elevation: 12 },
+  tabBar: { minHeight: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingTop: 8, paddingHorizontal: 7, backgroundColor: 'rgba(33,20,14,0.84)', borderTopWidth: 1, borderTopColor: 'rgba(244,184,110,0.22)', shadowColor: '#000000', shadowOpacity: 0.18, shadowRadius: 12, shadowOffset: { width: 0, height: -4 }, elevation: 12 },
   tabItem: { alignItems: 'center', justifyContent: 'center', flex: 1, gap: 2 },
   tabIconWrap: { width: 39, height: 31, alignItems: 'center', justifyContent: 'center', borderRadius: 12 },
   tabIconWrapActive: { backgroundColor: 'rgba(244,184,110,0.15)', borderWidth: 1, borderColor: 'rgba(244,184,110,0.34)' },
   tabLabel: { color: C.dim, fontSize: 9, fontWeight: '600' },
   tabLabelActive: { color: C.gold, fontWeight: '800' },
-  screenHeader: { height: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  screenHeader: { minHeight: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   backButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#3A271A', alignItems: 'center', justifyContent: 'center' },
   screenTitle: { color: C.white, fontSize: 15, fontWeight: '800', flex: 1, textAlign: 'center' },
   headerRight: { width: 36, alignItems: 'flex-end' },
@@ -612,7 +651,7 @@ const styles = StyleSheet.create({
   wordExample: { backgroundColor: '#3B281A', padding: 11, borderRadius: 12, marginTop: 12 },
   wordExampleLabel: { color: C.gold, fontSize: 8, letterSpacing: 1.1, fontWeight: '900', marginBottom: 5 },
   wordExampleText: { color: '#EAD9C9', fontSize: 11, lineHeight: 16, fontStyle: 'italic' },
-  chatHeader: { paddingHorizontal: 16, paddingBottom: 12, flexDirection: 'row', alignItems: 'center', gap: 8, borderBottomWidth: 1, borderBottomColor: '#3D2A1D' },
+  chatHeader: { minHeight: 62, paddingTop: 4, paddingHorizontal: 16, paddingBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 8, borderBottomWidth: 1, borderBottomColor: '#3D2A1D' },
   chatHeaderTitle: { color: C.white, fontSize: 14, fontWeight: '800' },
   chatHeaderAI: { color: C.muted, fontSize: 10, fontWeight: '500' },
   onlineRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 },
@@ -646,7 +685,7 @@ const styles = StyleSheet.create({
   voiceScreen: { flex: 1, paddingHorizontal: 18, paddingTop: 5 },
   voiceProgress: { padding: 16, backgroundColor: C.card, borderRadius: 17, borderWidth: 1, borderColor: C.line },
   voiceStep: { color: C.white, fontSize: 16, fontWeight: '800', marginTop: 5, marginBottom: 12 },
-  voiceCenter: { flex: 1, justifyContent: 'center', alignItems: 'center', minHeight: 300 },
+  voiceCenter: { flex: 1, justifyContent: 'center', alignItems: 'center', minHeight: 180 },
   voiceAvatarHalo: { width: 178, height: 178, borderRadius: 90, borderWidth: 4, borderColor: C.gold, padding: 5, shadowColor: C.gold, shadowOpacity: 0.24, shadowRadius: 22, elevation: 7 },
   voiceAvatarHaloActive: { borderColor: C.green, shadowColor: C.green },
   voiceAvatar: { width: '100%', height: '100%', borderRadius: 90 },
@@ -668,7 +707,7 @@ const styles = StyleSheet.create({
   grammarExample: { color: C.cream, backgroundColor: '#3C281A', padding: 11, borderRadius: 10, marginTop: 9, fontSize: 12, fontStyle: 'italic' },
   lessonImageWrap: { height: 225, justifyContent: 'flex-end', overflow: 'hidden', borderRadius: 20, marginBottom: 17 },
   lessonImage: { borderRadius: 20 },
-  lessonImageShade: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(21,10,4,0.52)' },
+  lessonImageShade: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(21,10,4,0.52)' },
   lessonImageContent: { padding: 17 },
   lessonHeroTitle: { color: C.white, fontSize: 24, fontWeight: '900', marginTop: 6 },
   lessonHeroText: { color: '#EAD8C7', fontSize: 11, marginTop: 5, maxWidth: 275, lineHeight: 16 },
