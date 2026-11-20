@@ -215,6 +215,18 @@ function AppContent() {
     return true;
   }, [activeTab]);
 
+  const returnToTextChat = useCallback(() => {
+    // Remove the chat entry only when Voice was opened directly from chat.
+    // Earlier navigation history remains available for the normal back action.
+    if (historyRef.current[historyRef.current.length - 1] === 'chat') {
+      historyRef.current.pop();
+    }
+    setMicrophonePreviewActive(false);
+    screenRef.current = 'chat';
+    setScreen('chat');
+    Keyboard.dismiss();
+  }, []);
+
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
       const current = screenRef.current;
@@ -616,7 +628,7 @@ function AppContent() {
           backgroundColor="#3A271A"
           iconColor={C.cream}
           style={styles.voiceSmallButton}
-          onPress={() => Alert.alert('Keyboard input', 'Return to chat to type your answer.')}
+          onPress={returnToTextChat}
         />
         <AnimatedMicrophoneButton
           state={microphonePreviewActive ? 'recording-preview' : 'idle'}

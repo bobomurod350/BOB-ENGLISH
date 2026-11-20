@@ -1,12 +1,22 @@
 import React, { forwardRef, useCallback, useEffect, useMemo, useRef } from 'react';
-import { AccessibilityState, Animated, GestureResponderEvent, Pressable, PressableProps, StyleProp, StyleSheet, ViewStyle } from 'react-native';
+import {
+  AccessibilityState,
+  Animated,
+  GestureResponderEvent,
+  Pressable,
+  PressableProps,
+  PressableStateCallbackType,
+  StyleProp,
+  StyleSheet,
+  ViewStyle,
+} from 'react-native';
 
 export interface AnimatedPressableProps extends Omit<PressableProps, 'style'> {
   pressedScale?: number;
   pressedOpacity?: number;
   tension?: number;
   friction?: number;
-  style?: StyleProp<ViewStyle> | ((state: { pressed: boolean }) => StyleProp<ViewStyle>);
+  style?: PressableProps['style'];
   onPressIn?: (event: GestureResponderEvent) => void;
   onPressOut?: (event: GestureResponderEvent) => void;
   accessibilityState?: AccessibilityState;
@@ -36,13 +46,11 @@ export const AnimatedPressable = forwardRef<React.ElementRef<typeof Pressable>, 
       transform: [{ scale: progress.interpolate({ inputRange: [0, 1], outputRange: [1, pressedScale] }) }],
     }), [pressedOpacity, pressedScale, progress]);
 
-    const resolveStyle = useCallback(({ pressed }: { pressed: boolean }) => [
+    const resolveStyle = useCallback((state: PressableStateCallbackType): StyleProp<ViewStyle> => [
       styles.touchTarget,
-      typeof style === 'function' ? style({ pressed }) : style,
+      typeof style === 'function' ? style(state) : style,
       styles.minimumTouchTarget,
-      animatedStyle,
-      disabled && styles.disabled,
-    ], [animatedStyle, disabled, style]);
+    ], [style]);
 
     const handlePressIn = useCallback((event: GestureResponderEvent) => {
       if (!disabled) animateTo(1);
@@ -55,25 +63,27 @@ export const AnimatedPressable = forwardRef<React.ElementRef<typeof Pressable>, 
     }, [animateTo, onPressOut]);
 
     return (
-      <Pressable
-        {...pressableProps}
-        ref={forwardedRef}
-        disabled={disabled}
-        hitSlop={hitSlop ?? 4}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        accessibilityState={{ ...accessibilityState, disabled: disabled || accessibilityState?.disabled }}
-        style={resolveStyle}
-      >
-        {children}
-      </Pressable>
+      <Animated.View style={[styles.minimumTouchTarget, animatedStyle, disabled && styles.disabled]}>
+        <Pressable
+          {...pressableProps}
+          ref={forwardedRef}
+          disabled={disabled}
+          hitSlop={hitSlop ?? 4}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          accessibilityState={{ ...accessibilityState, disabled: disabled || accessibilityState?.disabled }}
+          style={resolveStyle}
+        >
+          {children}
+        </Pressable>
+      </Animated.View>
     );
   },
 );
 
 const styles = StyleSheet.create({
   touchTarget: { justifyContent: 'center' },
-  // Applied after caller styles so width/height overrides cannot shrink the hit target.
+  // Apply after caller styles so width/height overrides cannot shrink the hit target.
   minimumTouchTarget: { minWidth: 44, minHeight: 44 },
   disabled: { opacity: 0.48 },
 });
