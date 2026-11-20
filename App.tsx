@@ -491,9 +491,9 @@ function AppContent() {
   };
 
   const isMainTab = (['home', 'practice', 'learn', 'progress', 'profile'] as Screen[]).includes(screen);
-  const safeAreaEdges = (isMainTab || screen === 'welcome')
-    ? ['top', 'left', 'right'] as const
-    : ['top', 'left', 'right', 'bottom'] as const;
+  const safeAreaEdges: ('top' | 'left' | 'right' | 'bottom')[] = (isMainTab || screen === 'welcome')
+    ? ['top', 'left', 'right']
+    : ['top', 'left', 'right', 'bottom'];
   return (
     <SafeAreaView style={styles.appRoot} edges={safeAreaEdges}>
       <StatusBar barStyle="light-content" backgroundColor={C.bg} />
