@@ -64,20 +64,69 @@ jobs:
         run: npm ci
 
       - name: TypeScript check
+        id: typecheck
+        continue-on-error: true
         run: npx tsc --noEmit
 
       - name: Expo Doctor
+        id: expo_doctor
+        continue-on-error: true
         run: npx expo-doctor
 
       - name: Validate public Expo configuration
+        id: expo_config
+        continue-on-error: true
         run: npx expo config --type public
 
       - name: Generate Android native project
+        id: android_prebuild
+        continue-on-error: true
         run: npx expo prebuild --platform android --no-install
 
       - name: Build Android debug APK
-        if: ${{ success() && hashFiles('android/gradlew') != '' }}
+        id: android_build
+        if: ${{ steps.android_prebuild.outcome == 'success' && hashFiles('android/gradlew') != '' }}
+        continue-on-error: true
         working-directory: android
         run: |
           chmod +x ./gradlew
           ./gradlew :app:assembleDebug --no-daemon
+
+      - name: Publish quality gate summary
+        if: always()
+        shell: bash
+        env:
+          TYPECHECK_OUTCOME: ${{ steps.typecheck.outcome }}
+          EXPO_DOCTOR_OUTCOME: ${{ steps.expo_doctor.outcome }}
+          EXPO_CONFIG_OUTCOME: ${{ steps.expo_config.outcome }}
+          ANDROID_PREBUILD_OUTCOME: ${{ steps.android_prebuild.outcome }}
+          ANDROID_BUILD_OUTCOME: ${{ steps.android_build.outcome }}
+        run: |
+          {
+            echo "## Quality gate results"
+            echo
+            echo "| Check | Result |"
+            echo "| --- | --- |"
+            echo "| TypeScript (npx tsc --noEmit) | $TYPECHECK_OUTCOME |"
+            echo "| Expo Doctor | $EXPO_DOCTOR_OUTCOME |"
+            echo "| Public Expo config | $EXPO_CONFIG_OUTCOME |"
+            echo "| Android prebuild | $ANDROID_PREBUILD_OUTCOME |"
+            echo "| Android debug build | $ANDROID_BUILD_OUTCOME |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          failed=0
+          for result in \
+            "$TYPECHECK_OUTCOME" \
+            "$EXPO_DOCTOR_OUTCOME" \
+            "$EXPO_CONFIG_OUTCOME" \
+            "$ANDROID_PREBUILD_OUTCOME" \
+            "$ANDROID_BUILD_OUTCOME"; do
+            if [ "$result" = "failure" ]; then
+              failed=1
+            fi
+          done
+
+          if [ "$failed" -ne 0 ]; then
+            echo "::error::One or more quality checks failed. See the step logs and summary."
+            exit 1
+          fi
