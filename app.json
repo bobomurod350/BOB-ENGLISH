@@ -1,15 +1,29 @@
 {
   "expo": {
-    "name": "EnglishTalk AI",
-    "slug": "englishtalk-ai",
+    "name": "BOB ENGLISH",
+    "slug": "bob-english",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#170E09",
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "android": {
-      "package": "com.englishtalkai.app",
-      "adaptiveIcon": { "backgroundColor": "#170E09" }
-    }
+      "package": "com.bobenglish.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#170E09"
+      }
+    },
+    "plugins": [
+      [
+        "expo-navigation-bar",
+        {
+          "enforceContrast": false,
+          "hidden": false,
+          "style": "light"
+        }
+      ]
+    ]
   }
 }
