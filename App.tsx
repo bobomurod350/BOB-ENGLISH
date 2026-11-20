@@ -153,13 +153,17 @@ function AppContent() {
 
   const navigate = useCallback((next: Screen) => {
     const current = screenRef.current;
+    const isDestinationMainTab = (['home', 'practice', 'learn', 'progress', 'profile'] as const).includes(next as Tab);
+
+    if (isDestinationMainTab) {
+      // Keep the highlighted tab in sync, even when the screen is already visible.
+      setActiveTab(next as Tab);
+    }
     if (current === next) return;
 
-    const isDestinationMainTab = (['home', 'practice', 'learn', 'progress', 'profile'] as const).includes(next as Tab);
     if (isDestinationMainTab) {
       // Opening a primary tab is equivalent to selecting it from the tab bar.
       historyRef.current = [];
-      setActiveTab(next as Tab);
     } else if (current !== 'welcome') {
       historyRef.current.push(current);
     }
