@@ -1001,7 +1001,7 @@ function AppContent() {
 
 
 
-  const startVoice = async () => {  const startVoice = async () => {
+  const startVoice = async () => {
     if (voiceStatus === 'connecting' || voiceStreamingRef.current) return;
 
     const runId = voiceRunIdRef.current + 1;
