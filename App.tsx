@@ -29,8 +29,8 @@ type Screen = 'welcome' | 'home' | 'practice' | 'learn' | 'progress' | 'profile'
 type Tab = 'home' | 'practice' | 'learn' | 'progress' | 'profile';
 type ChatMessage = { id: number; from: 'emma' | 'you'; text: string; time: string };
 type VoiceStatus = 'idle' | 'connecting' | 'listening' | 'speaking' | 'error';
-type CharacterId = 'emma' | 'spongebob';
-type GeminiVoiceName = 'Achernar' | 'Puck';
+type CharacterId = 'emma';
+type GeminiVoiceName = 'Achernar';
 type VoicePace = 'slow' | 'natural' | 'fast';
 type CharacterProfile = {
   id: CharacterId;
@@ -45,37 +45,22 @@ type CharacterProfile = {
   image: React.ComponentProps<typeof Image>['source'];
 };
 type VoiceSettings = {
-  characterId: CharacterId;
   speakingPace: VoicePace;
 };
 
-// Emma and SpongeBob are the two currently enabled Gemini Live characters.
-const VOICE_CHARACTERS: CharacterProfile[] = [
-  {
-    id: 'emma',
-    name: 'Emma',
-    role: 'English tutor',
-    tagline: 'Gentle, patient and encouraging',
-    voiceName: 'Achernar',
-    voiceStyle: 'Soft female',
-    accent: '#F4B86E',
-    surface: '#302015',
-    screen: '#170E09',
-    image: require('./assets/emma-cafe.jpg'),
-  },
-  {
-    id: 'spongebob',
-    name: 'SpongeBob',
-    role: 'English practice buddy',
-    tagline: 'Cheerful, playful and encouraging',
-    voiceName: 'Puck',
-    voiceStyle: 'Upbeat',
-    accent: '#F4D34E',
-    surface: '#263B43',
-    screen: '#101F27',
-    image: require('./assets/characters/spongebob.png'),
-  },
-];
+// Emma is the only English speaking partner in BOB ENGLISH.
+const EMMA_CHARACTER: CharacterProfile = {
+  id: 'emma',
+  name: 'Emma',
+  role: 'English tutor',
+  tagline: 'Gentle, patient and encouraging',
+  voiceName: 'Achernar',
+  voiceStyle: 'Soft female',
+  accent: '#F4B86E',
+  surface: '#302015',
+  screen: '#170E09',
+  image: require('./assets/emma-cafe.jpg'),
+};
 
 const PACE_OPTIONS: Array<{ value: VoicePace; title: string; description: string }> = [
   { value: 'slow', title: 'Slow', description: 'Clearer, with more pauses' },
@@ -710,15 +695,12 @@ function AppContent() {
   const [scenario, setScenario] = useState('Café Conversation');
   const [voiceSettingsVisible, setVoiceSettingsVisible] = useState(false);
   const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>({
-    characterId: 'emma',
     speakingPace: 'natural',
   });
   const [voiceSettingsDraft, setVoiceSettingsDraft] = useState<VoiceSettings>({
-    characterId: 'emma',
     speakingPace: 'natural',
   });
-  const selectedCharacter = VOICE_CHARACTERS.find(character => character.id === voiceSettings.characterId) ?? VOICE_CHARACTERS[0];
-  const draftCharacter = VOICE_CHARACTERS.find(character => character.id === voiceSettingsDraft.characterId) ?? VOICE_CHARACTERS[0];
+  const selectedCharacter = EMMA_CHARACTER;
 
   const voiceSocketRef = useRef<WebSocket | null>(null);
   const voiceRecorderRef = useRef<InstanceType<typeof AudioRecorder> | null>(null);
@@ -987,15 +969,15 @@ function AppContent() {
     if (voiceStreamingRef.current || voiceStatus === 'connecting') {
       void stopVoice();
       Alert.alert(
-        'Character saved',
-        `The current conversation has stopped. Tap the microphone to talk with ${draftCharacter.name}.`,
+        'Voice settings saved',
+        'The current conversation has stopped. Emma will use the updated speaking pace next time.',
       );
       return;
     }
 
     Alert.alert(
-      'Character saved',
-      `${draftCharacter.name} is ready. The next voice session will use this character's voice and personality.`,
+      'Voice settings saved',
+      `Emma will use the ${voiceSettingsDraft.speakingPace} speaking pace in the next voice session.`,
     );
   };
 
@@ -1119,11 +1101,7 @@ function AppContent() {
             outputAudioTranscription: {},
             systemInstruction: {
               parts: [{
-                text: tokenData.systemInstruction || (
-                  selectedCharacter.id === 'spongebob'
-                    ? 'You are SpongeBob, a cheerful, playful and optimistic English practice buddy. Use bright, upbeat and expressive delivery with simple clear English for an A2 learner. Be kind, funny and encouraging.'
-                    : EMMA_LIVE_PROMPT
-                ),
+                text: tokenData.systemInstruction || EMMA_LIVE_PROMPT,
               }],
             },
           },
@@ -2147,20 +2125,20 @@ function AppContent() {
             style={styles.voiceSettingsBackdrop}
             onPress={() => setVoiceSettingsVisible(false)}
             accessibilityRole="button"
-            accessibilityLabel="Close character settings"
+            accessibilityLabel="Close Emma voice settings"
           />
-          <View style={[styles.voiceSettingsSheet, { paddingBottom: Math.max(insets.bottom, 18), borderColor: draftCharacter.accent }]}>
+          <View style={[styles.voiceSettingsSheet, { paddingBottom: Math.max(insets.bottom, 18), borderColor: EMMA_CHARACTER.accent }]}>
             <View style={styles.voiceSettingsHandle} />
             <View style={styles.voiceSettingsHeader}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.voiceSettingsTitle}>Choose your character</Text>
-                <Text style={styles.voiceSettingsSubtitle}>Choose your English speaking partner. Emma has a gentle voice, while SpongeBob has an upbeat Gemini voice.</Text>
+                <Text style={styles.voiceSettingsTitle}>Emma's voice settings</Text>
+                <Text style={styles.voiceSettingsSubtitle}>Adjust how Emma speaks during your English practice.</Text>
               </View>
               <Pressable
                 style={styles.voiceSettingsClose}
                 onPress={() => setVoiceSettingsVisible(false)}
                 accessibilityRole="button"
-                accessibilityLabel="Close character settings"
+                accessibilityLabel="Close voice settings"
               >
                 <Icon name="close" size={20} color={C.cream} />
               </Pressable>
@@ -2173,45 +2151,8 @@ function AppContent() {
             >
               <View style={styles.voiceSettingsSection}>
                 <View style={styles.voiceSettingsSectionHeading}>
-                  <Icon name="people-outline" size={18} color={draftCharacter.accent} />
-                  <Text style={[styles.voiceSettingsSectionTitle, { color: draftCharacter.accent }]}>YOUR CHARACTERS</Text>
-                </View>
-                {Array.from({ length: Math.ceil(VOICE_CHARACTERS.length / 2) }).map((_, rowIndex) => (
-                  <View key={`character-row-${rowIndex}`} style={styles.characterGridRow}>
-                    {VOICE_CHARACTERS.slice(rowIndex * 2, rowIndex * 2 + 2).map(character => {
-                      const selected = voiceSettingsDraft.characterId === character.id;
-                      return (
-                        <Pressable
-                          key={character.id}
-                          style={[
-                            styles.characterOption,
-                            selected && { borderColor: character.accent, backgroundColor: character.surface },
-                          ]}
-                          onPress={() => setVoiceSettingsDraft(current => ({ ...current, characterId: character.id }))}
-                          accessibilityRole="radio"
-                          accessibilityLabel={`${character.name}, ${character.role}, ${character.voiceStyle} voice`}
-                          accessibilityState={{ selected }}
-                        >
-                          <Image source={character.image} style={[styles.characterOptionImage, { borderColor: character.accent }]} />
-                          <View style={styles.characterOptionCopy}>
-                            <Text numberOfLines={1} style={[styles.characterOptionName, selected && { color: character.accent }]}>{character.name}</Text>
-                            <Text numberOfLines={1} style={styles.characterOptionRole}>{character.role}</Text>
-                            <Text numberOfLines={1} style={styles.characterOptionVoice}>{`${character.voiceStyle} voice`}</Text>
-                          </View>
-                          <View style={[styles.characterOptionRadio, selected && { borderColor: character.accent }]}>
-                            {selected ? <View style={[styles.characterOptionRadioDot, { backgroundColor: character.accent }]} /> : null}
-                          </View>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                ))}
-              </View>
-
-              <View style={styles.voiceSettingsSection}>
-                <View style={styles.voiceSettingsSectionHeading}>
-                  <Icon name="speedometer-outline" size={18} color={draftCharacter.accent} />
-                  <Text style={[styles.voiceSettingsSectionTitle, { color: draftCharacter.accent }]}>SPEAKING PACE</Text>
+                  <Icon name="speedometer-outline" size={18} color={EMMA_CHARACTER.accent} />
+                  <Text style={[styles.voiceSettingsSectionTitle, { color: EMMA_CHARACTER.accent }]}>SPEAKING PACE</Text>
                 </View>
                 <View style={styles.voicePaceRow}>
                   {PACE_OPTIONS.map(option => {
@@ -2219,33 +2160,33 @@ function AppContent() {
                     return (
                       <Pressable
                         key={option.value}
-                        style={[styles.voicePaceOption, selected && { borderColor: draftCharacter.accent, backgroundColor: draftCharacter.surface }]}
+                        style={[styles.voicePaceOption, selected && { borderColor: EMMA_CHARACTER.accent, backgroundColor: EMMA_CHARACTER.surface }]}
                         onPress={() => setVoiceSettingsDraft(current => ({ ...current, speakingPace: option.value }))}
                         accessibilityRole="radio"
                         accessibilityState={{ selected }}
                       >
-                        <Text style={[styles.voicePaceTitle, selected && { color: draftCharacter.accent }]}>{option.title}</Text>
+                        <Text style={[styles.voicePaceTitle, selected && { color: EMMA_CHARACTER.accent }]}>{option.title}</Text>
                         <Text style={styles.voicePaceDescription}>{option.description}</Text>
                       </Pressable>
                     );
                   })}
                 </View>
-                <Text style={styles.voiceSettingsFootnote}>Pace is guided by the character's conversation instructions. It is not a fixed audio playback-speed control.</Text>
+                <Text style={styles.voiceSettingsFootnote}>Pace changes how Emma delivers her responses. It does not change the recorded audio playback speed.</Text>
               </View>
 
               <View style={styles.voiceSettingsInfo}>
-                <Icon name="information-circle-outline" size={18} color={draftCharacter.accent} />
-                <Text style={styles.voiceSettingsInfoText}>Selected: {draftCharacter.name}. Saving changes the voice, personality, avatar and color theme for your next voice session. English practice stays in English.</Text>
+                <Icon name="information-circle-outline" size={18} color={EMMA_CHARACTER.accent} />
+                <Text style={styles.voiceSettingsInfoText}>Emma is your English tutor and the only speaking partner in this app. Her Gemini voice is Achernar.</Text>
               </View>
             </ScrollView>
 
             <Pressable
-              style={({ pressed }) => [styles.voiceSettingsSave, { backgroundColor: draftCharacter.accent }, pressed && styles.pressed]}
+              style={({ pressed }) => [styles.voiceSettingsSave, { backgroundColor: EMMA_CHARACTER.accent }, pressed && styles.pressed]}
               onPress={applyVoiceSettings}
               accessibilityRole="button"
-              accessibilityLabel={`Save ${draftCharacter.name} as selected character`}
+              accessibilityLabel="Save Emma voice settings"
             >
-              <Text style={styles.voiceSettingsSaveText}>Save {draftCharacter.name}</Text>
+              <Text style={styles.voiceSettingsSaveText}>Save voice settings</Text>
               <Icon name="checkmark" size={19} color="#2B180D" />
             </Pressable>
           </View>
@@ -2555,15 +2496,6 @@ const styles = StyleSheet.create({
   voiceSettingsSection: { gap: 9 },
   voiceSettingsSectionHeading: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 },
   voiceSettingsSectionTitle: { color: C.gold, fontSize: 10, fontWeight: '900', letterSpacing: 1.1 },
-  characterGridRow: { flexDirection: 'row', gap: 9 },
-  characterOption: { flex: 1, minWidth: 0, minHeight: 118, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#2B1B12', borderWidth: 1, borderColor: '#4D3525', borderRadius: 15, padding: 8 },
-  characterOptionImage: { width: 54, height: 54, borderRadius: 13, borderWidth: 1.5 },
-  characterOptionCopy: { flex: 1, minWidth: 0, gap: 3 },
-  characterOptionName: { color: C.cream, fontSize: 11, fontWeight: '900' },
-  characterOptionRole: { color: C.muted, fontSize: 8, fontWeight: '600' },
-  characterOptionVoice: { color: C.dim, fontSize: 7, fontWeight: '700' },
-  characterOptionRadio: { width: 17, height: 17, borderRadius: 9, borderWidth: 1.5, borderColor: '#8F765F', alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-start' },
-  characterOptionRadioDot: { width: 8, height: 8, borderRadius: 4 },
   voicePaceRow: { flexDirection: 'row', gap: 7 },
   voicePaceOption: { flex: 1, minHeight: 67, justifyContent: 'center', backgroundColor: '#2B1B12', borderWidth: 1, borderColor: '#4D3525', borderRadius: 13, paddingHorizontal: 8, paddingVertical: 10 },
   voicePaceOptionSelected: { borderColor: C.gold, backgroundColor: '#3A2819' },
