@@ -23,9 +23,10 @@ import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-
 import { BlurView, BlurTargetView } from 'expo-blur';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { AudioContext, AudioManager, AudioRecorder } from 'react-native-audio-api';
+import * as Speech from 'expo-speech';
 
 type IconName = string;
-type Screen = 'welcome' | 'home' | 'practice' | 'learn' | 'progress' | 'profile' | 'chat' | 'voice' | 'vocabulary' | 'correction' | 'lesson';
+type Screen = 'welcome' | 'home' | 'practice' | 'learn' | 'progress' | 'profile' | 'chat' | 'voice' | 'vocabulary' | 'correction' | 'lesson' | 'listening';
 type Tab = 'home' | 'practice' | 'learn' | 'progress' | 'profile';
 type ChatMessage = { id: number; from: 'emma' | 'you'; text: string; time: string };
 type VoiceStatus = 'idle' | 'connecting' | 'listening' | 'speaking' | 'error';
@@ -133,6 +134,65 @@ IMPORTANT:
 - Never invent information about the student's progress.
 - Keep normal replies concise and friendly.
 `;
+
+
+const VOCABULARY_ITEMS = [
+  { word: 'usually', type: 'adverb', meaning: 'In most situations; most of the time.', example: 'I usually study English after dinner.', quizOptions: ['Most of the time', 'Only one time', 'Never'], quizAnswer: 0 },
+  { word: 'prefer', type: 'verb', meaning: 'To like one thing more than another.', example: 'I prefer tea to coffee.', quizOptions: ['To forget something', 'To like one thing more', 'To pay for something'], quizAnswer: 1 },
+  { word: 'commute', type: 'verb', meaning: 'To travel regularly between home and work or school.', example: 'I commute to university by bus.', quizOptions: ['To travel to work or school', 'To cook dinner', 'To learn a language'], quizAnswer: 0 },
+  { word: 'crowded', type: 'adjective', meaning: 'Full of many people.', example: 'The bus is crowded this morning.', quizOptions: ['Very quiet', 'Very expensive', 'Full of people'], quizAnswer: 2 },
+  { word: 'affordable', type: 'adjective', meaning: 'Not too expensive; at a price you can pay.', example: 'This café has affordable food.', quizOptions: ['Not too expensive', 'Very far away', 'Difficult to find'], quizAnswer: 0 },
+  { word: 'reservation', type: 'noun', meaning: 'An arrangement to keep a place for you.', example: 'I have a hotel reservation for tonight.', quizOptions: ['A printed ticket', 'An arrangement to keep a place', 'A late payment'], quizAnswer: 1 },
+  { word: 'available', type: 'adjective', meaning: 'Free and ready to be used or chosen.', example: 'Is this seat available?', quizOptions: ['Broken', 'Already taken', 'Free to use'], quizAnswer: 2 },
+  { word: 'confident', type: 'adjective', meaning: 'Feeling sure about your ability.', example: 'I feel more confident when I speak English.', quizOptions: ['Sure about yourself', 'Angry with someone', 'Tired after work'], quizAnswer: 0 },
+  { word: 'improve', type: 'verb', meaning: 'To become better or make something better.', example: 'I practise every day to improve my English.', quizOptions: ['To stop completely', 'To become better', 'To make something slower'], quizAnswer: 1 },
+  { word: 'opportunity', type: 'noun', meaning: 'A chance to do something useful or exciting.', example: 'Studying abroad is a great opportunity.', quizOptions: ['A problem', 'A long journey', 'A chance to do something'], quizAnswer: 2 },
+] as const;
+
+const GRAMMAR_QUESTIONS = [
+  { prompt: 'She ___ English every evening.', options: ['study', 'studies', 'studying'], answer: 1, explanation: 'With he, she or it, add -s or -es to the Present Simple verb.' },
+  { prompt: 'They ___ to university by bus.', options: ['go', 'goes', 'going'], answer: 0, explanation: 'Use the base verb with they, we and I.' },
+  { prompt: '___ he work in a café?', options: ['Do', 'Does', 'Is'], answer: 1, explanation: 'Use Does to make a Present Simple question with he, she or it.' },
+  { prompt: 'I ___ coffee in the evening.', options: ['doesn’t drink', 'not drink', 'don’t drink'], answer: 2, explanation: 'Use don’t + base verb with I, you, we and they.' },
+  { prompt: 'My brother ___ football on Sundays.', options: ['plays', 'play', 'playing'], answer: 0, explanation: 'My brother means he, so the verb takes -s.' },
+] as const;
+
+const LISTENING_TRACKS = [
+  {
+    title: 'The missed bus',
+    level: 'A2 · Everyday life',
+    script: 'Hello, my name is Anna. I usually take the bus at eight o’clock. Today I missed it, so I am waiting for the next bus. I hope I am not late for class.',
+    question: 'Why is Anna waiting?',
+    options: ['She missed her bus.', 'She is meeting a friend.', 'She wants to buy a ticket.'],
+    answer: 0,
+    explanation: 'Anna says she missed the bus and is waiting for the next one.',
+  },
+  {
+    title: 'A café order',
+    level: 'A2 · Food and drink',
+    script: 'Good afternoon. Could I have a medium cappuccino, please? I would also like a cheese sandwich. Is it possible to take them away? Thank you.',
+    question: 'What size cappuccino does the customer order?',
+    options: ['Small', 'Medium', 'Large'],
+    answer: 1,
+    explanation: 'The customer clearly asks for a medium cappuccino.',
+  },
+  {
+    title: 'First day at university',
+    level: 'A2 · Study',
+    script: 'Hi, I am Daniel. Today is my first day at university. My class starts at nine, but I arrived early because I want to find the library and meet my classmates.',
+    question: 'Why did Daniel arrive early?',
+    options: ['He wants to go home.', 'He wants to find the library and meet classmates.', 'His class starts at seven.'],
+    answer: 1,
+    explanation: 'Daniel arrived early to find the library and meet his classmates.',
+  },
+] as const;
+
+const SPEAKING_CHALLENGES = [
+  { title: 'The 30-second story', prompt: 'Tell Emma about what you did yesterday. Use first, then, after that and finally.' },
+  { title: 'Describe without naming', prompt: 'Describe your favourite food without saying its name. Explain its colour, taste and when you eat it.' },
+  { title: 'Think fast', prompt: 'You have one minute to plan a perfect day in a new city. Tell Emma where you would go and why.' },
+  { title: 'Ask the expert', prompt: 'Imagine Emma is visiting your city for the first time. Give her three useful tips and ask her one question.' },
+] as const;
 
 function resampleMono(samples: Float32Array, inputRate: number, outputRate: number): Float32Array {
   if (inputRate === outputRate || samples.length === 0) return samples;
@@ -726,6 +786,24 @@ function AppContent() {
 
   const [savedWords, setSavedWords] = useState<string[]>(['usually', 'prefer']);
   const [learnFilter, setLearnFilter] = useState<'Grammar' | 'Listening' | 'Reading'>('Grammar');
+  const [chatMode, setChatMode] = useState<'coach' | 'conversation' | 'challenge'>('coach');
+  const [vocabularyMode, setVocabularyMode] = useState<'cards' | 'saved' | 'quiz'>('cards');
+  const [vocabularyIndex, setVocabularyIndex] = useState(0);
+  const [vocabularyRevealed, setVocabularyRevealed] = useState(false);
+  const [vocabularyQuizChoice, setVocabularyQuizChoice] = useState<number | null>(null);
+  const [vocabularyQuizChecked, setVocabularyQuizChecked] = useState(false);
+  const [vocabularyQuizScore, setVocabularyQuizScore] = useState(0);
+  const [grammarQuestionIndex, setGrammarQuestionIndex] = useState(0);
+  const [grammarChoice, setGrammarChoice] = useState<number | null>(null);
+  const [grammarChecked, setGrammarChecked] = useState(false);
+  const [grammarScore, setGrammarScore] = useState(0);
+  const [grammarFinished, setGrammarFinished] = useState(false);
+  const [listeningIndex, setListeningIndex] = useState(0);
+  const [listeningChoice, setListeningChoice] = useState<number | null>(null);
+  const [listeningScore, setListeningScore] = useState(0);
+  const [listeningFinished, setListeningFinished] = useState(false);
+  const [listeningPlaying, setListeningPlaying] = useState(false);
+  const [speakingChallengeIndex, setSpeakingChallengeIndex] = useState(0);
 
   const navigate = useCallback((next: Screen) => {
     const current = screenRef.current;
@@ -794,6 +872,7 @@ function AppContent() {
   };
 
   const openChat = (nextScenario = 'Free Conversation') => {
+    setChatMode('coach');
     setScenario(nextScenario);
     setChatMessages([{
       id: Date.now(),
@@ -843,6 +922,8 @@ function AppContent() {
           message,
           history,
           studentLevel: 'A2',
+          scenario,
+          practiceMode: chatMode,
         }),
       });
 
@@ -1001,7 +1082,11 @@ function AppContent() {
       const tokenResponse = await fetch(`${API_BASE_URL}/api/live-token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(voiceSettings),
+        body: JSON.stringify({
+          ...voiceSettings,
+          speakingChallenge: SPEAKING_CHALLENGES[speakingChallengeIndex].prompt,
+          scenario,
+        }),
       });
       const tokenData: {
         success?: boolean;
@@ -1309,6 +1394,13 @@ function AppContent() {
   voiceStopRef.current = stopVoice;
 
   useEffect(() => {
+    if (screen !== 'listening') {
+      void Speech.stop();
+      setListeningPlaying(false);
+    }
+  }, [screen]);
+
+  useEffect(() => {
     if (screen !== 'voice' && (voiceStreamingRef.current || voiceStatus === 'connecting')) {
       void voiceStopRef.current();
     }
@@ -1321,6 +1413,80 @@ function AppContent() {
   const toggleSaveWord = (word: string) => {
     setSavedWords(words => words.includes(word) ? words.filter(item => item !== word) : [...words, word]);
   };
+
+  const openListening = () => {
+    void Speech.stop();
+    setListeningIndex(0);
+    setListeningChoice(null);
+    setListeningScore(0);
+    setListeningFinished(false);
+    setListeningPlaying(false);
+    navigate('listening');
+  };
+
+  const playListeningTrack = () => {
+    const track = LISTENING_TRACKS[listeningIndex];
+    void Speech.stop();
+    setListeningPlaying(true);
+    Speech.speak(track.script, {
+      language: 'en-US',
+      rate: 0.82,
+      pitch: 1,
+      onDone: () => setListeningPlaying(false),
+      onStopped: () => setListeningPlaying(false),
+      onError: () => {
+        setListeningPlaying(false);
+        Alert.alert('Audio unavailable', 'Please check that an English text-to-speech voice is installed on your device.');
+      },
+    });
+  };
+
+  const checkGrammarAnswer = () => {
+    if (grammarChoice === null || grammarChecked) return;
+    setGrammarChecked(true);
+    if (grammarChoice === GRAMMAR_QUESTIONS[grammarQuestionIndex].answer) {
+      setGrammarScore(score => score + 1);
+    }
+  };
+
+  const nextGrammarQuestion = () => {
+    if (grammarQuestionIndex < GRAMMAR_QUESTIONS.length - 1) {
+      setGrammarQuestionIndex(index => index + 1);
+      setGrammarChoice(null);
+      setGrammarChecked(false);
+    } else {
+      setGrammarFinished(true);
+    }
+  };
+
+  const resetGrammarChallenge = () => {
+    setGrammarQuestionIndex(0);
+    setGrammarChoice(null);
+    setGrammarChecked(false);
+    setGrammarScore(0);
+    setGrammarFinished(false);
+  };
+
+  const nextListeningTrack = () => {
+    if (listeningIndex < LISTENING_TRACKS.length - 1) {
+      setListeningIndex(index => index + 1);
+      setListeningChoice(null);
+      setListeningPlaying(false);
+    } else {
+      setListeningFinished(true);
+    }
+  };
+
+  const restartListening = () => {
+    void Speech.stop();
+    setListeningIndex(0);
+    setListeningChoice(null);
+    setListeningScore(0);
+    setListeningFinished(false);
+    setListeningPlaying(false);
+  };
+
+
 
   const renderWelcome = () => (
     <ImageBackground
@@ -1440,7 +1606,7 @@ function AppContent() {
         <FeatureTile icon="briefcase-outline" title="Scenarios" subtitle="Real-life" onPress={() => navigate('practice')} />
         <FeatureTile icon="book-outline" title="Vocabulary" subtitle="New words" onPress={() => navigate('vocabulary')} />
         <FeatureTile icon="library-outline" title="Grammar" subtitle="With examples" onPress={() => navigate('correction')} />
-        <FeatureTile icon="headset-outline" title="Listening" subtitle="Train your ear" onPress={() => navigate('learn')} />
+        <FeatureTile icon="headset-outline" title="Listening" subtitle="Train your ear" onPress={openListening} />
         <FeatureTile icon="mic-outline" title="Speaking" subtitle="Speak clearly" onPress={() => navigate('voice')} />
       </View>
 
@@ -1567,7 +1733,7 @@ function AppContent() {
               </Text>
             </View>
           </View>
-          <AppButton title={`Start ${learnFilter} lesson`} icon="arrow-forward" onPress={() => openChat(`${learnFilter} Practice`)} />
+          <AppButton title={`Start ${learnFilter} lesson`} icon="arrow-forward" onPress={() => learnFilter === 'Listening' ? openListening() : openChat(`${learnFilter} Practice`)} />
         </>
       )}
 
@@ -1762,50 +1928,153 @@ function AppContent() {
   }
 
   const renderVocabulary = () => {
-    const words = [
-      { word: 'usually', type: 'adverb', meaning: 'In most situations; most of the time.', example: 'I usually have a coffee in the morning.' },
-      { word: 'prefer', type: 'verb', meaning: 'To like one thing more than another.', example: 'I prefer tea to coffee.' },
-      { word: 'friendly', type: 'adjective', meaning: 'Kind and pleasant towards other people.', example: 'The people in this café are friendly.' },
-      { word: 'order', type: 'verb', meaning: 'To ask for food or a drink in a café.', example: 'I would like to order a cappuccino.' },
-      { word: 'comfortable', type: 'adjective', meaning: 'Relaxed and feeling good.', example: 'I feel comfortable speaking English.' },
-    ];
+    const currentWord = VOCABULARY_ITEMS[vocabularyIndex];
+    const savedVocabulary = VOCABULARY_ITEMS.filter(item => savedWords.includes(item.word));
+
+    const startVocabularyQuiz = () => {
+      setVocabularyMode('quiz');
+      setVocabularyIndex(0);
+      setVocabularyQuizChoice(null);
+      setVocabularyQuizChecked(false);
+      setVocabularyQuizScore(0);
+    };
+
+    const nextVocabularyCard = () => {
+      setVocabularyIndex(index => (index + 1) % VOCABULARY_ITEMS.length);
+      setVocabularyRevealed(false);
+    };
+
+    const checkVocabularyAnswer = () => {
+      if (vocabularyQuizChoice === null || vocabularyQuizChecked) return;
+      setVocabularyQuizChecked(true);
+      if (vocabularyQuizChoice === currentWord.quizAnswer) {
+        setVocabularyQuizScore(score => score + 1);
+      }
+    };
+
+    const nextVocabularyQuestion = () => {
+      if (vocabularyIndex < VOCABULARY_ITEMS.length - 1) {
+        setVocabularyIndex(index => index + 1);
+        setVocabularyQuizChoice(null);
+        setVocabularyQuizChecked(false);
+      } else {
+        Alert.alert(
+          'Vocabulary mission complete',
+          \`You scored \${vocabularyQuizScore} out of \${VOCABULARY_ITEMS.length}. Try again to improve your memory.\`,
+          [{ text: 'Try again', onPress: startVocabularyQuiz }, { text: 'Done', onPress: () => setVocabularyMode('cards') }],
+        );
+      }
+    };
 
     return (
       <StaggeredScrollView {...scrollProps} animationKey={screen}>
-        <ScreenHeader title="Vocabulary" onBack={goBack} right={<Icon name="search-outline" size={21} color={C.cream} />} />
-
+        <ScreenHeader title="Vocabulary Lab" onBack={goBack} />
         <View style={styles.pageIntro}>
-          <Text style={styles.eyebrow}>WORDS FROM YOUR JOURNEY</Text>
-          <Text style={styles.pageHeading}>Build your vocabulary</Text>
-          <Text style={styles.mutedText}>Listen, learn and save useful words.</Text>
+          <Text style={styles.eyebrow}>REMEMBER · RECALL · USE</Text>
+          <Text style={styles.pageHeading}>Words that stay with you</Text>
+          <Text style={styles.mutedText}>Learn by retrieval, not by reading the same list again.</Text>
         </View>
 
         <View style={styles.wordSummary}>
-          <View><Text style={styles.wordSummaryNumber}>320</Text><Text style={styles.mutedText}>Words learned</Text></View>
+          <View><Text style={styles.wordSummaryNumber}>{VOCABULARY_ITEMS.length}</Text><Text style={styles.mutedText}>Practice words</Text></View>
           <View style={styles.wordSummaryDivider} />
           <View><Text style={styles.wordSummaryNumber}>{savedWords.length}</Text><Text style={styles.mutedText}>Saved words</Text></View>
           <View style={styles.wordSummaryDivider} />
-          <View><Text style={styles.wordSummaryNumber}>24</Text><Text style={styles.mutedText}>To review</Text></View>
+          <View><Text style={styles.wordSummaryNumber}>{VOCABULARY_ITEMS.length - vocabularyQuizScore}</Text><Text style={styles.mutedText}>To master</Text></View>
         </View>
 
-        {words.map(item => (
-          <View key={item.word} style={styles.wordCard}>
-            <View style={styles.wordTop}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.wordName}>{item.word}</Text>
-                <Text style={styles.wordType}>{item.type}</Text>
-              </View>
-              <Pressable onPress={() => toggleSaveWord(item.word)} style={styles.wordAction}>
-                <Icon name={savedWords.includes(item.word) ? 'bookmark' : 'bookmark-outline'} size={20} color={C.gold} />
+        <View style={styles.filterRow}>
+          {([
+            ['cards', 'Flashcards'],
+            ['quiz', 'Quick quiz'],
+            ['saved', 'My words'],
+          ] as const).map(([mode, label]) => (
+            <Pressable key={mode} onPress={() => setVocabularyMode(mode)} style={[styles.filterChip, vocabularyMode === mode && styles.filterChipActive]}>
+              <Text style={[styles.filterText, vocabularyMode === mode && styles.filterTextActive]}>{label}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        {vocabularyMode === 'cards' ? (
+          <>
+            <View style={styles.challengePanel}>
+              <Text style={styles.cardKicker}>FLASHCARD {vocabularyIndex + 1} / {VOCABULARY_ITEMS.length}</Text>
+              <Pressable onPress={() => setVocabularyRevealed(value => !value)} style={styles.flashcard}>
+                <Text style={styles.flashcardWord}>{currentWord.word}</Text>
+                <Text style={styles.flashcardType}>{currentWord.type.toUpperCase()}</Text>
+                <Text style={styles.flashcardHint}>{vocabularyRevealed ? currentWord.meaning : 'Tap the card to reveal its meaning'}</Text>
+                {vocabularyRevealed ? (
+                  <View style={styles.wordExample}>
+                    <Text style={styles.wordExampleLabel}>SAY IT IN A SENTENCE</Text>
+                    <Text style={styles.wordExampleText}>{currentWord.example}</Text>
+                  </View>
+                ) : null}
               </Pressable>
+              <View style={styles.challengeActionRow}>
+                <Pressable style={styles.secondaryAction} onPress={() => Speech.speak(currentWord.word, { language: 'en-US', rate: 0.82 })}>
+                  <Icon name="volume-high-outline" size={18} color={C.gold} />
+                  <Text style={styles.secondaryActionText}>Hear word</Text>
+                </Pressable>
+                <Pressable style={styles.secondaryAction} onPress={() => toggleSaveWord(currentWord.word)}>
+                  <Icon name={savedWords.includes(currentWord.word) ? 'bookmark' : 'bookmark-outline'} size={18} color={C.gold} />
+                  <Text style={styles.secondaryActionText}>{savedWords.includes(currentWord.word) ? 'Saved' : 'Save'}</Text>
+                </Pressable>
+              </View>
+              {vocabularyRevealed ? (
+                <View style={styles.challengeActionRow}>
+                  <AppButton title="Review again" secondary compact onPress={nextVocabularyCard} />
+                  <AppButton title="I know it" compact onPress={nextVocabularyCard} />
+                </View>
+              ) : (
+                <AppButton title="Reveal meaning" icon="eye-outline" onPress={() => setVocabularyRevealed(true)} />
+              )}
             </View>
-            <Text style={styles.wordMeaning}>{item.meaning}</Text>
-            <View style={styles.wordExample}>
-              <Text style={styles.wordExampleLabel}>EXAMPLE</Text>
-              <Text style={styles.wordExampleText}>{item.example}</Text>
-            </View>
+            <Text style={styles.mutedText}>Memory trick: say the word aloud, cover the meaning, then try to remember it tomorrow.</Text>
+          </>
+        ) : vocabularyMode === 'quiz' ? (
+          <View style={styles.challengePanel}>
+            <Text style={styles.cardKicker}>MEANING SPRINT · {vocabularyIndex + 1}/{VOCABULARY_ITEMS.length}</Text>
+            <Text style={styles.challengeQuestion}>What does “{currentWord.word}” mean?</Text>
+            {currentWord.quizOptions.map((option, index) => {
+              const selected = vocabularyQuizChoice === index;
+              const correct = vocabularyQuizChecked && index === currentWord.quizAnswer;
+              return (
+                <Pressable key={option} onPress={() => !vocabularyQuizChecked && setVocabularyQuizChoice(index)} style={[styles.quizOption, selected && styles.quizOptionSelected, correct && styles.quizOptionCorrect]}>
+                  <Text style={styles.quizOptionText}>{option}</Text>
+                  {correct ? <Icon name="checkmark-circle" color={C.green} size={18} /> : selected && vocabularyQuizChecked ? <Icon name="close-circle" color={C.red} size={18} /> : null}
+                </Pressable>
+              );
+            })}
+            {vocabularyQuizChecked ? <Text style={styles.tipText}>{currentWord.meaning}</Text> : null}
+            {!vocabularyQuizChecked ? (
+              <AppButton title="Check answer" icon="checkmark" onPress={checkVocabularyAnswer} disabled={vocabularyQuizChoice === null} />
+            ) : (
+              <AppButton title={vocabularyIndex === VOCABULARY_ITEMS.length - 1 ? 'Finish quiz' : 'Next word'} icon="arrow-forward" onPress={nextVocabularyQuestion} />
+            )}
+            <Text style={styles.mutedText}>Correct answers this round: {vocabularyQuizScore}</Text>
           </View>
-        ))}
+        ) : (
+          <View style={styles.challengePanel}>
+            <Text style={styles.cardKicker}>YOUR PERSONAL WORD BANK</Text>
+            {savedVocabulary.length === 0 ? (
+              <Text style={styles.mutedText}>No saved words yet. Open Flashcards and tap Save on a word you want to remember.</Text>
+            ) : savedVocabulary.map(item => (
+              <View key={item.word} style={styles.savedWordRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.wordName}>{item.word}</Text>
+                  <Text style={styles.wordMeaning}>{item.meaning}</Text>
+                  <Text style={styles.wordExampleText}>{item.example}</Text>
+                </View>
+                <Pressable onPress={() => Speech.speak(item.word, { language: 'en-US', rate: 0.82 })} style={styles.wordAction}>
+                  <Icon name="volume-high-outline" size={18} color={C.gold} />
+                </Pressable>
+                <Pressable onPress={() => toggleSaveWord(item.word)} style={styles.wordAction}>
+                  <Icon name="bookmark" size={18} color={C.gold} />
+                </Pressable>
+              </View>
+            ))}
+          </View>
+        )}
       </StaggeredScrollView>
     );
   };
@@ -1819,11 +2088,23 @@ function AppContent() {
           <Text style={styles.chatHeaderTitle}>Emma <Text style={styles.chatHeaderAI}>(AI Tutor)</Text></Text>
           <View style={styles.onlineRow}>
             <View style={styles.onlineDot} />
-            <Text style={styles.onlineText}>Online · {scenario}</Text>
+            <Text style={styles.onlineText}>Online · {scenario} · {chatMode === 'coach' ? 'Gentle corrections' : chatMode === 'challenge' ? 'Challenge mode' : 'Free conversation'}</Text>
           </View>
         </View>
         <Pressable style={styles.chatHeaderAction} onPress={() => navigate('voice')}><Icon name="call-outline" size={21} color={C.gold} /></Pressable>
         <Pressable style={styles.chatHeaderAction} onPress={() => Alert.alert('Conversation', 'Your practice conversation is saved in this demo session.')}><Icon name="ellipsis-vertical" size={19} color={C.cream} /></Pressable>
+      </View>
+
+      <View style={styles.chatModeRow}>
+        {([
+          ['coach', 'Coach me'],
+          ['conversation', 'Free talk'],
+          ['challenge', 'Challenge'],
+        ] as const).map(([mode, label]) => (
+          <Pressable key={mode} onPress={() => setChatMode(mode)} style={[styles.chatModeChip, chatMode === mode && styles.chatModeChipActive]}>
+            <Text style={[styles.chatModeText, chatMode === mode && styles.chatModeTextActive]}>{label}</Text>
+          </Pressable>
+        ))}
       </View>
 
       <ScrollView
@@ -1889,7 +2170,12 @@ function AppContent() {
 
       <View style={[styles.voiceProgress, { backgroundColor: selectedCharacter.surface, borderColor: selectedCharacter.accent }]}>
         <Text style={[styles.cardKicker, { color: selectedCharacter.accent }]}>{scenario.toUpperCase()}</Text>
-        <Text style={styles.voiceStep}>Speak naturally with {selectedCharacter.name}</Text>
+        <Text style={styles.voiceStep}>Speak naturally with Emma</Text>
+        <Text style={styles.voiceHint}>{SPEAKING_CHALLENGES[speakingChallengeIndex].prompt}</Text>
+        <Pressable onPress={() => setSpeakingChallengeIndex(index => (index + 1) % SPEAKING_CHALLENGES.length)} style={styles.speakingMissionButton}>
+          <Icon name="shuffle-outline" size={15} color={selectedCharacter.accent} />
+          <Text style={styles.speakingMissionText}>Change speaking mission</Text>
+        </Pressable>
         <ProgressBar progress={60} color={selectedCharacter.accent} />
       </View>
 
@@ -1966,8 +2252,8 @@ function AppContent() {
           style={[styles.voiceSmallButton, { borderColor: selectedCharacter.accent }]}
           onPress={openVoiceSettings}
           accessibilityRole="button"
-          accessibilityLabel="Open character settings"
-          accessibilityHint="View character and speaking settings."
+          accessibilityLabel="Open Emma voice settings"
+          accessibilityHint="Change Emma voice speed."
         >
           <Icon name="options-outline" size={22} color={C.cream} />
         </Pressable>
@@ -1988,45 +2274,77 @@ function AppContent() {
     </View>
   );
 
-  const renderCorrection = () => (
-    <StaggeredScrollView {...scrollProps} animationKey={screen}>
-      <ScreenHeader title="Correction & tips" onBack={goBack} />
+  const renderCorrection = () => {
+    const question = GRAMMAR_QUESTIONS[grammarQuestionIndex];
 
-      <View style={styles.pageIntro}>
-        <Text style={styles.eyebrow}>LEARN FROM YOUR MISTAKES</Text>
-        <Text style={styles.pageHeading}>Say it naturally</Text>
-        <Text style={styles.mutedText}>A small correction can make a big difference.</Text>
-      </View>
-
-      <View style={styles.correctionCard}>
-        <View style={styles.correctionLabel}><Icon name="close-circle" size={18} color={C.red} /><Text style={styles.correctionLabelText}>YOUR SENTENCE</Text></View>
-        <Text style={styles.correctionSentence}>I usually drink coffee with milk.</Text>
-        <View style={styles.correctionDivider} />
-        <View style={styles.correctionLabel}><Icon name="checkmark-circle" size={18} color={C.green} /><Text style={styles.correctionLabelText}>MORE NATURAL</Text></View>
-        <Text style={styles.correctedSentence}>I usually have a coffee with milk.</Text>
-      </View>
-
-      <View style={styles.tipCard}>
-        <Icon name="bulb-outline" size={21} color={C.gold} />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.goalTitle}>Why?</Text>
-          <Text style={styles.tipText}>Both sentences are understandable. In everyday English, people often say “have a coffee” when they mean drinking one cup.</Text>
+    return (
+      <StaggeredScrollView {...scrollProps} animationKey={screen}>
+        <ScreenHeader title="Grammar Detective" onBack={goBack} />
+        <View style={styles.pageIntro}>
+          <Text style={styles.eyebrow}>SPOT THE PATTERN · FIX THE SENTENCE</Text>
+          <Text style={styles.pageHeading}>Train your grammar instinct</Text>
+          <Text style={styles.mutedText}>Five quick missions. Choose the missing word and learn why it works.</Text>
         </View>
-      </View>
 
-      <SectionTitle title="Useful grammar" />
+        <View style={styles.wordSummary}>
+          <View><Text style={styles.wordSummaryNumber}>{grammarFinished ? grammarScore : grammarQuestionIndex + 1}</Text><Text style={styles.mutedText}>{grammarFinished ? 'Correct answers' : 'Current mission'}</Text></View>
+          <View style={styles.wordSummaryDivider} />
+          <View><Text style={styles.wordSummaryNumber}>{GRAMMAR_QUESTIONS.length}</Text><Text style={styles.mutedText}>Total missions</Text></View>
+          <View style={styles.wordSummaryDivider} />
+          <View><Text style={styles.wordSummaryNumber}>A2</Text><Text style={styles.mutedText}>Your level</Text></View>
+        </View>
 
-      <View style={styles.grammarCard}>
-        <Text style={styles.lessonFeatureTitle}>Present Simple</Text>
-        <Text style={styles.mutedText}>Use it for habits, routines and facts.</Text>
-        <Text style={styles.grammarExample}>I drink coffee every morning.</Text>
-        <Text style={styles.grammarExample}>She works in a café.</Text>
-        <Text style={styles.grammarExample}>Do you like tea?</Text>
-      </View>
+        {grammarFinished ? (
+          <View style={styles.challengePanel}>
+            <Text style={styles.cardKicker}>MISSION COMPLETE</Text>
+            <Text style={styles.challengeQuestion}>{grammarScore} / {GRAMMAR_QUESTIONS.length} correct</Text>
+            <Text style={styles.mutedText}>{grammarScore >= 4 ? 'Excellent detective work. Your Present Simple is getting stronger.' : 'Good effort. Review the explanations and try again to make the patterns stick.'}</Text>
+            <AppButton title="Play again" icon="refresh" onPress={resetGrammarChallenge} />
+            <AppButton title="Practise with Emma" secondary onPress={() => openChat('Present Simple Practice')} />
+          </View>
+        ) : (
+          <View style={styles.challengePanel}>
+            <View style={styles.lessonProgressRow}>
+              <Text style={styles.cardKicker}>CASE {grammarQuestionIndex + 1}</Text>
+              <Text style={styles.mutedText}>{grammarScore} correct so far</Text>
+            </View>
+            <ProgressBar progress={(grammarQuestionIndex / GRAMMAR_QUESTIONS.length) * 100} />
+            <Text style={styles.challengeQuestion}>{question.prompt}</Text>
+            {question.options.map((option, index) => {
+              const selected = grammarChoice === index;
+              const correct = grammarChecked && index === question.answer;
+              return (
+                <Pressable key={option} onPress={() => !grammarChecked && setGrammarChoice(index)} style={[styles.quizOption, selected && styles.quizOptionSelected, correct && styles.quizOptionCorrect]}>
+                  <Text style={styles.quizOptionText}>{option}</Text>
+                  {correct ? <Icon name="checkmark-circle" color={C.green} size={18} /> : selected && grammarChecked ? <Icon name="close-circle" color={C.red} size={18} /> : null}
+                </Pressable>
+              );
+            })}
+            {grammarChecked ? (
+              <View style={styles.tipCard}>
+                <Icon name={grammarChoice === question.answer ? 'checkmark-circle' : 'bulb-outline'} size={20} color={grammarChoice === question.answer ? C.green : C.gold} />
+                <Text style={styles.tipText}>{question.explanation}</Text>
+              </View>
+            ) : null}
+            {!grammarChecked ? (
+              <AppButton title="Check my answer" icon="checkmark" onPress={checkGrammarAnswer} disabled={grammarChoice === null} />
+            ) : (
+              <AppButton title={grammarQuestionIndex === GRAMMAR_QUESTIONS.length - 1 ? 'See my result' : 'Next case'} icon="arrow-forward" onPress={nextGrammarQuestion} />
+            )}
+          </View>
+        )}
 
-      <AppButton title="Practise with Emma" icon="arrow-forward" onPress={() => openChat('Grammar Practice')} />
-    </StaggeredScrollView>
-  );
+        <SectionTitle title="Grammar rule to remember" />
+        <View style={styles.grammarCard}>
+          <Text style={styles.lessonFeatureTitle}>Present Simple</Text>
+          <Text style={styles.mutedText}>Use it for habits, routines and facts. With he, she and it, most verbs take -s or -es.</Text>
+          <Text style={styles.grammarExample}>I study English every day.</Text>
+          <Text style={styles.grammarExample}>She studies English every day.</Text>
+          <Text style={styles.grammarExample}>Does he study English?</Text>
+        </View>
+      </StaggeredScrollView>
+    );
+  };
 
   const renderLesson = () => (
     <StaggeredScrollView {...scrollProps} animationKey={screen}>
@@ -2068,6 +2386,83 @@ function AppContent() {
     </StaggeredScrollView>
   );
 
+
+  const renderListening = () => {
+    const track = LISTENING_TRACKS[listeningIndex];
+
+    return (
+      <StaggeredScrollView {...scrollProps} animationKey={screen}>
+        <ScreenHeader title="Listening Lab" onBack={goBack} />
+        <View style={styles.pageIntro}>
+          <Text style={styles.eyebrow}>LISTEN · UNDERSTAND · PROVE IT</Text>
+          <Text style={styles.pageHeading}>Train your listening ear</Text>
+          <Text style={styles.mutedText}>Hear a short story, catch the details and answer without reading the script first.</Text>
+        </View>
+
+        {listeningFinished ? (
+          <View style={styles.challengePanel}>
+            <Text style={styles.cardKicker}>LISTENING MISSION COMPLETE</Text>
+            <Text style={styles.challengeQuestion}>{listeningScore} / {LISTENING_TRACKS.length} correct</Text>
+            <Text style={styles.mutedText}>{listeningScore === LISTENING_TRACKS.length ? 'Perfect listening! You caught every detail.' : 'Nice work. Replay the stories and listen for key words like times, places and reasons.'}</Text>
+            <AppButton title="Listen again" icon="refresh" onPress={restartListening} />
+            <AppButton title="Try a speaking mission" secondary onPress={() => navigate('voice')} />
+          </View>
+        ) : (
+          <>
+            <View style={styles.wordSummary}>
+              <View><Text style={styles.wordSummaryNumber}>{listeningIndex + 1}/{LISTENING_TRACKS.length}</Text><Text style={styles.mutedText}>Audio story</Text></View>
+              <View style={styles.wordSummaryDivider} />
+              <View><Text style={styles.wordSummaryNumber}>{listeningScore}</Text><Text style={styles.mutedText}>Correct so far</Text></View>
+            </View>
+            <View style={styles.challengePanel}>
+              <Text style={styles.cardKicker}>{track.level.toUpperCase()}</Text>
+              <Text style={styles.lessonFeatureTitle}>{track.title}</Text>
+              <Text style={styles.mutedText}>First listen without looking for the answer. Then replay and notice the details.</Text>
+              <Pressable onPress={listeningPlaying ? () => { void Speech.stop(); setListeningPlaying(false); } : playListeningTrack} style={styles.audioPlayButton}>
+                <Icon name={listeningPlaying ? 'stop' : 'volume-high'} size={26} color="#2B180D" />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.audioPlayTitle}>{listeningPlaying ? 'Stop audio' : 'Play English audio'}</Text>
+                  <Text style={styles.audioPlaySubtitle}>Natural device voice · Replay anytime</Text>
+                </View>
+                <Icon name="headset-outline" size={21} color="#2B180D" />
+              </Pressable>
+              <View style={styles.wordExample}>
+                <Text style={styles.wordExampleLabel}>COMPREHENSION CHECK</Text>
+                <Text style={styles.challengeQuestion}>{track.question}</Text>
+              </View>
+              {track.options.map((option, index) => {
+                const selected = listeningChoice === index;
+                const correct = listeningChoice !== null && index === track.answer;
+                return (
+                  <Pressable key={option} onPress={() => {
+                    if (listeningChoice !== null) return;
+                    setListeningChoice(index);
+                    if (index === track.answer) setListeningScore(score => score + 1);
+                  }} style={[styles.quizOption, selected && styles.quizOptionSelected, correct && styles.quizOptionCorrect]}>
+                    <Text style={styles.quizOptionText}>{option}</Text>
+                    {correct ? <Icon name="checkmark-circle" color={C.green} size={18} /> : selected ? <Icon name="close-circle" color={C.red} size={18} /> : null}
+                  </Pressable>
+                );
+              })}
+              {listeningChoice !== null ? (
+                <>
+                  <Text style={styles.tipText}>{track.explanation}</Text>
+                  <View style={styles.wordExample}>
+                    <Text style={styles.wordExampleLabel}>READ AFTER LISTENING</Text>
+                    <Text style={styles.wordExampleText}>{track.script}</Text>
+                  </View>
+                  <AppButton title={listeningIndex === LISTENING_TRACKS.length - 1 ? 'Finish listening lab' : 'Next audio story'} icon="arrow-forward" onPress={nextListeningTrack} />
+                </>
+              ) : (
+                <Text style={styles.mutedText}>Choose one answer after listening to the whole audio.</Text>
+              )}
+            </View>
+          </>
+        )}
+      </StaggeredScrollView>
+    );
+  };
+
   const renderMainContent = () => {
     switch (screen) {
       case 'home': return renderHome();
@@ -2079,6 +2474,7 @@ function AppContent() {
       case 'chat': return renderChat();
       case 'voice': return renderVoice();
       case 'correction': return renderCorrection();
+      case 'listening': return renderListening();
       case 'lesson': return renderLesson();
       default: return renderHome();
     }
@@ -2431,6 +2827,30 @@ const styles = StyleSheet.create({
   wordExampleLabel: { color: C.gold, fontSize: 8, letterSpacing: 1.1, fontWeight: '900', marginBottom: 5 },
   wordExampleText: { color: '#EAD9C9', fontSize: 11, lineHeight: 16, fontStyle: 'italic' },
 
+  chatModeRow: { flexDirection: 'row', gap: 7, paddingHorizontal: 14, paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: '#3D2A1D' },
+  chatModeChip: { borderWidth: 1, borderColor: C.line, borderRadius: 15, paddingVertical: 7, paddingHorizontal: 12, backgroundColor: C.card },
+  chatModeChipActive: { borderColor: C.gold, backgroundColor: '#4A301D' },
+  chatModeText: { color: C.muted, fontSize: 9, fontWeight: '700' },
+  chatModeTextActive: { color: C.gold },
+  challengePanel: { backgroundColor: C.card, borderRadius: 19, borderWidth: 1, borderColor: C.line, padding: 16, marginBottom: 16, gap: 10 },
+  challengeQuestion: { color: C.white, fontSize: 18, lineHeight: 25, fontWeight: '800', marginTop: 6, marginBottom: 7 },
+  quizOption: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingHorizontal: 13, paddingVertical: 11, borderRadius: 13, borderWidth: 1, borderColor: '#62432F', backgroundColor: '#342216', marginBottom: 8 },
+  quizOptionSelected: { borderColor: C.gold, backgroundColor: '#4A301D' },
+  quizOptionCorrect: { borderColor: C.green, backgroundColor: '#23382A' },
+  quizOptionText: { color: C.cream, fontSize: 12, lineHeight: 17, flex: 1 },
+  challengeActionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 9, marginTop: 8 },
+  secondaryAction: { flex: 1, minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: 12, borderWidth: 1, borderColor: C.line, backgroundColor: '#3A2718', paddingHorizontal: 8 },
+  secondaryActionText: { color: C.gold, fontSize: 10, fontWeight: '800' },
+  flashcard: { minHeight: 190, justifyContent: 'center', alignItems: 'center', borderRadius: 17, borderWidth: 1, borderColor: '#725033', backgroundColor: '#3C281A', padding: 19, marginVertical: 6 },
+  flashcardWord: { color: C.white, fontSize: 31, fontWeight: '900', letterSpacing: 0.5, textAlign: 'center' },
+  flashcardType: { color: C.gold, fontSize: 9, fontWeight: '900', letterSpacing: 1.5, marginTop: 8 },
+  flashcardHint: { color: C.cream, fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 16 },
+  savedWordRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#4A3324' },
+  audioPlayButton: { minHeight: 67, flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 15, paddingHorizontal: 14, paddingVertical: 11, backgroundColor: C.gold, marginTop: 12, marginBottom: 10 },
+  audioPlayTitle: { color: '#2B180D', fontSize: 13, fontWeight: '900' },
+  audioPlaySubtitle: { color: '#654222', fontSize: 9, marginTop: 3 },
+  speakingMissionButton: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingVertical: 6, paddingHorizontal: 9, borderRadius: 12, backgroundColor: '#4A301D', marginBottom: 8 },
+  speakingMissionText: { color: C.gold, fontSize: 9, fontWeight: '800' },
   chatHeader: { minHeight: 62, paddingTop: 4, paddingHorizontal: 16, paddingBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 8, borderBottomWidth: 1, borderBottomColor: '#3D2A1D' },
   chatHeaderTitle: { color: C.white, fontSize: 14, fontWeight: '800' },
   chatHeaderAI: { color: C.muted, fontSize: 10, fontWeight: '500' },
