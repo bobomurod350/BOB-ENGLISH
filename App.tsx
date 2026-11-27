@@ -1034,7 +1034,7 @@ function AppContent() {
       } = await tokenResponse.json();
 
       if (!tokenResponse.ok || tokenData.success !== true || !tokenData.token) {
-        throw new Error(tokenData.error || `Could not start Emma’s voice session (HTTP ${tokenResponse.status}).`);
+        throw new Error(tokenData.error || `Could not start ${selectedCharacter.name}’s voice session (HTTP ${tokenResponse.status}).`);
       }
       if (runId !== voiceRunIdRef.current) return;
 
@@ -1089,7 +1089,7 @@ function AppContent() {
       voiceSetupRejectRef.current = rejectSetup;
 
       const setupTimeout = setTimeout(() => {
-        rejectSetup(new Error('Emma’s voice setup timed out. Check your internet connection and try again.'));
+        rejectSetup(new Error(`${selectedCharacter.name}’s voice setup timed out. Check your internet connection and try again.`));
       }, 20000);
 
       socket.onopen = () => {
@@ -1098,8 +1098,7 @@ function AppContent() {
           return;
         }
 
-        // Use native audio output and transcription for Emma. The selected
-        // prebuilt voice is Achernar, Google's soft female voice.
+        // Use the selected Gemini Live prebuilt voice and native audio output.
         const generationConfig = {
           responseModalities: ['AUDIO'],
           speechConfig: {
@@ -1222,14 +1221,14 @@ function AppContent() {
       };
 
       socket.onerror = () => {
-        rejectSetup(new Error('Emma’s voice connection failed. Check your internet connection and try again.'));
+        rejectSetup(new Error(`${selectedCharacter.name}’s voice connection failed. Check your internet connection and try again.`));
       };
 
       socket.onclose = event => {
         if (runId !== voiceRunIdRef.current) return;
 
         if (!voiceSessionReadyRef.current) {
-          rejectSetup(new Error(event.reason || `Emma’s voice session ended (code ${event.code}).`));
+          rejectSetup(new Error(event.reason || `${selectedCharacter.name}’s voice session ended (code ${event.code}).`));
           return;
         }
 
@@ -1238,7 +1237,7 @@ function AppContent() {
             setVoiceStatus('error');
             Alert.alert(
               'Voice connection closed',
-              event.reason || 'Emma’s voice connection ended. Tap the microphone to reconnect.',
+              event.reason || `${selectedCharacter.name}’s voice connection ended. Tap the microphone to reconnect.`,
             );
           });
         }
@@ -1317,13 +1316,13 @@ function AppContent() {
     } catch (error) {
       if (runId !== voiceRunIdRef.current) return;
 
-      console.error('Emma Live Voice Error:', error);
+      console.error(`${selectedCharacter.name} Live Voice Error:`, error);
       await stopVoice();
       setVoiceStatus('error');
 
       Alert.alert(
         'Could not start voice chat',
-        error instanceof Error ? error.message : 'Emma could not connect. Check the network and try again.',
+        error instanceof Error ? error.message : `${selectedCharacter.name} could not connect. Check the network and try again.`,
       );
     }
   };
@@ -2197,7 +2196,7 @@ function AppContent() {
                           <View style={styles.characterOptionCopy}>
                             <Text numberOfLines={1} style={[styles.characterOptionName, selected && { color: character.accent }]}>{character.name}</Text>
                             <Text numberOfLines={1} style={styles.characterOptionRole}>{character.role}</Text>
-                            <Text numberOfLines={1} style={styles.characterOptionVoice}>{character.voiceStyle === 'Custom' ? 'Custom voice' : `${character.voiceStyle} voice`}</Text>
+                            <Text numberOfLines={1} style={styles.characterOptionVoice}>{`${character.voiceStyle} voice`}</Text>
                           </View>
                           <View style={[styles.characterOptionRadio, selected && { borderColor: character.accent }]}>
                             {selected ? <View style={[styles.characterOptionRadioDot, { backgroundColor: character.accent }]} /> : null}
