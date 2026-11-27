@@ -306,14 +306,15 @@ function Icon({ name, size = 20, color = C.cream }: { name: IconName; size?: num
   return <Ionicons name={name as never} size={size} color={color} />;
 }
 
-function AppButton({ title, onPress, icon, secondary = false, compact = false }: {
-  title: string; onPress: () => void; icon?: IconName; secondary?: boolean; compact?: boolean;
+function AppButton({ title, onPress, icon, secondary = false, compact = false, disabled = false }: {
+  title: string; onPress: () => void; icon?: IconName; secondary?: boolean; compact?: boolean; disabled?: boolean;
 }) {
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [
+    <Pressable disabled={disabled} onPress={onPress} style={({ pressed }) => [
       styles.button,
       secondary && styles.buttonSecondary,
       compact && styles.buttonCompact,
+      disabled && { opacity: 0.45 },
       pressed && styles.pressed,
     ]}>
       <Text style={[styles.buttonText, secondary && styles.buttonTextSecondary, compact && styles.buttonTextCompact]}>{title}</Text>
@@ -2047,7 +2048,7 @@ function AppContent() {
             })}
             {vocabularyQuizChecked ? <Text style={styles.tipText}>{currentWord.meaning}</Text> : null}
             {!vocabularyQuizChecked ? (
-              <AppButton title="Check answer" icon="checkmark" onPress={checkVocabularyAnswer} />
+              <AppButton title="Check answer" icon="checkmark" onPress={checkVocabularyAnswer} disabled={vocabularyQuizChoice === null} />
             ) : (
               <AppButton title={vocabularyIndex === VOCABULARY_ITEMS.length - 1 ? 'Finish quiz' : 'Next word'} icon="arrow-forward" onPress={nextVocabularyQuestion} />
             )}
@@ -2327,7 +2328,7 @@ function AppContent() {
               </View>
             ) : null}
             {!grammarChecked ? (
-              <AppButton title="Check my answer" icon="checkmark" onPress={checkGrammarAnswer} />
+              <AppButton title="Check my answer" icon="checkmark" onPress={checkGrammarAnswer} disabled={grammarChoice === null} />
             ) : (
               <AppButton title={grammarQuestionIndex === GRAMMAR_QUESTIONS.length - 1 ? 'See my result' : 'Next case'} icon="arrow-forward" onPress={nextGrammarQuestion} />
             )}
