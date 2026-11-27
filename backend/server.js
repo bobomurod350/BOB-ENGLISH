@@ -16,15 +16,6 @@ const CHAT_MODEL = process.env.GEMINI_CHAT_MODEL || 'gemini-3.1-flash-lite';
 const LIVE_MODEL = process.env.GEMINI_LIVE_MODEL || 'gemini-3.8-live';
 const apiKey = process.env.GEMINI_API_KEY;
 
-// ElevenLabs credentials and output settings (secrets remain backend-only).
-const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
-const ELEVENLABS_VOICE_ID =
-  process.env.ELEVENLABS_VOICE_ID || 'eJA77D6JPL68vUCetEQR';
-const ELEVENLABS_MODEL_ID =
-  process.env.ELEVENLABS_MODEL_ID || 'eleven_flash_v2_5';
-// The request below explicitly asks ElevenLabs for pcm_24000.
-const ELEVENLABS_OUTPUT_SAMPLE_RATE = 24000;
-
 const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
 const liveAi = apiKey
@@ -79,12 +70,12 @@ const CHARACTERS = Object.freeze({
       'You are Emma, a friendly, patient female AI English tutor. Be warm, calm, encouraging and natural. Speak in a gentle, soft feminine voice. Help the learner practise everyday English, correct mistakes kindly, and ask one simple follow-up question. Keep your sentences clear and suitable for an A2 learner.',
   },
 
-  hulk: {
-    name: 'Hulk',
-    voiceName: 'Alnilam',
-    speechProvider: 'elevenlabs',
+  spongebob: {
+    name: 'SpongeBob',
+    voiceName: 'Puck',
+    speechProvider: 'gemini',
     persona:
-      'You are Hulk, an original powerful green hero guardian. Be confident, brave, protective and encouraging. Speak in short, clear English sentences. Be strong but patient, never aggressive or threatening. Help the learner practise English.',
+      'Be cheerful, playful, optimistic, expressive and full of positive energy. Use lively, upbeat delivery and simple, clear English for an A2 learner. Add gentle humor, stay kind and patient, and encourage the learner to keep speaking. Use an original animated-comedy style without imitating any specific actor or existing character voice.',
   },
 });
 
@@ -96,16 +87,25 @@ const PACE_INSTRUCTIONS = {
 };
 
 function buildLiveSystemInstruction({ character, speakingPace }) {
-  return `${EMMA_PROMPT('A2', character.name)}
+  return `You are ${character.name}, an AI English practice partner in BOB ENGLISH.
+
+STUDENT LEVEL: A2
 
 CHARACTER PERSONALITY:
 ${character.persona}
+
+TEACHING RULES:
+- Practise everyday English conversations.
+- Correct mistakes kindly and explain them in simple words.
+- Use short, clear sentences suitable for an A2 learner.
+- Ask one natural follow-up question to keep the conversation going.
+- Be encouraging and patient. Never insult or pressure the learner.
 
 VOICE DELIVERY:
 ${PACE_INSTRUCTIONS[speakingPace]}
 
 IDENTITY:
-Your character name is ${character.name}. Introduce yourself naturally if the learner asks. Stay in character while teaching English. Always teach and converse in English. Do not imitate any copyrighted fictional character or real person.`;
+Your character name is ${character.name}. Introduce yourself naturally if the learner asks. Stay in character while helping the learner practise English. Always converse in English.`;
 }
 
 app.disable('x-powered-by');
@@ -361,105 +361,11 @@ app.post('/api/live-token', async (req, res) => {
     console.error('Gemini Live token error:', error?.message || error);
 
     return res.status(502).json({
-      error: 'Could not create the Emma voice session token.',
+      error: 'Could not create the selected character voice session token.',
     });
   }
 });
  
-// Generate Hulk's custom voice using ElevenLabs.
-// The ElevenLabs API key never leaves the backend.
-app.post('/api/tts', async (req, res) => {
-  if (!ELEVENLABS_API_KEY || !ELEVENLABS_VOICE_ID) {
-    return res.status(503).json({
-      error: 'Hulk custom voice is not configured in backend/.env.',
-    });
-  }
-
-  const { text, characterId } = req.body ?? {};
-
-  if (characterId !== 'hulk') {
-    return res.status(400).json({
-      error: 'This speech endpoint is reserved for Hulk.',
-    });
-  }
-
-  if (
-    typeof text !== 'string' ||
-    !text.trim() ||
-    text.trim().length > 1600
-  ) {
-    return res.status(400).json({
-      error: 'Text must contain between 1 and 1600 characters.',
-    });
-  }
-
-  try {
-    const elevenResponse = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(ELEVENLABS_VOICE_ID)}?output_format=pcm_24000`,
-      {
-        method: 'POST',
-        headers: {
-          'xi-api-key': ELEVENLABS_API_KEY,
-          'Content-Type': 'application/json',
-          Accept: 'application/octet-stream',
-        },
-        body: JSON.stringify({
-          text: text.trim(),
-          model_id: ELEVENLABS_MODEL_ID,
-          voice_settings: {
-            stability: 0.32,
-            similarity_boost: 0.88,
-            style: 0.55,
-            use_speaker_boost: true,
-            speed: 0.86,
-          },
-        }),
-        signal: AbortSignal.timeout(30000),
-      },
-    );
-
-    if (!elevenResponse.ok) {
-      const detail = (await elevenResponse.text()).slice(0, 500);
-
-      console.error(
-        'ElevenLabs TTS error:',
-        elevenResponse.status,
-        detail,
-      );
-
-      return res.status(502).json({
-        error: `Hulk voice generation failed (ElevenLabs HTTP ${elevenResponse.status}).`,
-      });
-    }
-
-    const pcmBuffer = Buffer.from(
-      await elevenResponse.arrayBuffer(),
-    );
-
-    if (!pcmBuffer.length) {
-      return res.status(502).json({
-        error: 'ElevenLabs returned empty audio.',
-      });
-    }
-
-    return res.json({
-      success: true,
-      audioBase64: pcmBuffer.toString('base64'),
-      sampleRate: ELEVENLABS_OUTPUT_SAMPLE_RATE,
-      mimeType: 'audio/pcm;rate=24000',
-    });
-  } catch (error) {
-    console.error(
-      'Hulk TTS request failed:',
-      error?.message || error,
-    );
-
-    return res.status(502).json({
-      error: 'Could not generate Hulk voice audio.',
-    });
-  }
-});
-
 // Not found.
 app.use((_req, res) => {
   res.status(404).json({
