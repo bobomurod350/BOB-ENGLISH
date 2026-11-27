@@ -13,10 +13,15 @@
   "dependencies": {
     "@react-native-vector-icons/ionicons": "14.0.0",
     "expo": "~58.0.26",
+    "expo-blur": "~58.0.6",
+    "expo-build-properties": "~58.0.12",
+    "expo-constants": "~58.0.16",
+    "expo-dev-client": "~58.0.21",
     "expo-font": "~58.0.12",
     "expo-navigation-bar": "~58.0.4",
     "react": "19.3.0",
     "react-native": "0.88.1",
+    "react-native-audio-api": "^1.0.1",
     "react-native-safe-area-context": "~5.11.1"
   },
   "devDependencies": {

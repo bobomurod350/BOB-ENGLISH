@@ -13,7 +13,10 @@
       "package": "com.bobenglish.app",
       "adaptiveIcon": {
         "backgroundColor": "#170E09"
-      }
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "plugins": [
       [
@@ -23,7 +26,37 @@
           "hidden": false,
           "style": "light"
         }
+      ],
+      [
+        "react-native-audio-api",
+        {
+          "iosMicrophonePermission": "BOB ENGLISH needs access to your microphone for live English conversations.",
+          "androidPermissions": [
+            "android.permission.RECORD_AUDIO"
+          ]
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 37,
+            "targetSdkVersion": 36,
+            "buildToolsVersion": "37.0.0",
+            "usesCleartextTraffic": true
+          }
+        }
       ]
-    ]
+    ],
+    "extra": {
+      "expo-navigation-bar": {
+        "enforceContrast": false,
+        "style": "light",
+        "hidden": false
+      },
+      "eas": {
+        "projectId": "b11b29be-f2c8-4f79-b4f8-5fa49a558df9"
+      }
+    }
   }
 }
