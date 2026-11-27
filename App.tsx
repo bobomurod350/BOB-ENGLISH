@@ -1961,7 +1961,7 @@ function AppContent() {
       } else {
         Alert.alert(
           'Vocabulary mission complete',
-          \`You scored \${vocabularyQuizScore} out of \${VOCABULARY_ITEMS.length}. Try again to improve your memory.\`,
+          `You scored ${vocabularyQuizScore} out of ${VOCABULARY_ITEMS.length}. Try again to improve your memory.`,
           [{ text: 'Try again', onPress: startVocabularyQuiz }, { text: 'Done', onPress: () => setVocabularyMode('cards') }],
         );
       }
