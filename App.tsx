@@ -2327,7 +2327,7 @@ function AppContent() {
               </View>
             ) : null}
             {!grammarChecked ? (
-              <AppButton title="Check my answer" icon="checkmark" onPress={checkGrammarAnswer} disabled={grammarChoice === null} />
+              <AppButton title="Check my answer" icon="checkmark" onPress={checkGrammarAnswer} />
             ) : (
               <AppButton title={grammarQuestionIndex === GRAMMAR_QUESTIONS.length - 1 ? 'See my result' : 'Next case'} icon="arrow-forward" onPress={nextGrammarQuestion} />
             )}
