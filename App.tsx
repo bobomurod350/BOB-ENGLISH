@@ -29,8 +29,8 @@ type Screen = 'welcome' | 'home' | 'practice' | 'learn' | 'progress' | 'profile'
 type Tab = 'home' | 'practice' | 'learn' | 'progress' | 'profile';
 type ChatMessage = { id: number; from: 'emma' | 'you'; text: string; time: string };
 type VoiceStatus = 'idle' | 'connecting' | 'listening' | 'speaking' | 'error';
-type CharacterId = 'emma' | 'hulk';
-type GeminiVoiceName = 'Achernar' | 'Alnilam';
+type CharacterId = 'emma' | 'spongebob';
+type GeminiVoiceName = 'Achernar' | 'Puck';
 type VoicePace = 'slow' | 'natural' | 'fast';
 type CharacterProfile = {
   id: CharacterId;
@@ -49,7 +49,7 @@ type VoiceSettings = {
   speakingPace: VoicePace;
 };
 
-// Emma and Hulk are the two currently enabled characters. Add more only when each voice and image is ready.
+// Emma and SpongeBob are the two currently enabled Gemini Live characters.
 const VOICE_CHARACTERS: CharacterProfile[] = [
   {
     id: 'emma',
@@ -64,17 +64,16 @@ const VOICE_CHARACTERS: CharacterProfile[] = [
     image: require('./assets/emma-cafe.jpg'),
   },
   {
-    id: 'hulk',
-    name: 'Hulk',
-    role: 'Hero guardian',
-    tagline: 'Strong, brave and encouraging',
-    voiceName: 'Alnilam',
-    voiceStyle: 'Custom',
-    accent: '#8CCB57',
-    surface: '#24351C',
-    screen: '#10190F',
-    // Reuse the Hulk artwork already present in the project.
-    image: require('./assets/characters/titan.png'),
+    id: 'spongebob',
+    name: 'SpongeBob',
+    role: 'English practice buddy',
+    tagline: 'Cheerful, playful and encouraging',
+    voiceName: 'Puck',
+    voiceStyle: 'Upbeat',
+    accent: '#F4D34E',
+    surface: '#263B43',
+    screen: '#101F27',
+    image: require('./assets/characters/spongebob.png'),
   },
 ];
 
@@ -736,7 +735,6 @@ function AppContent() {
   const voiceRecorderActiveRef = useRef(false);
   const voiceAudioSessionActiveRef = useRef(false);
   const voicePlaybackStartedQueueRef = useRef<ReturnType<AudioContext['createBufferQueueSource']> | null>(null);
-  const voiceTtsPlayingRef = useRef(false);
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     { id: 1, from: 'emma', text: "Hi! I'm Emma. I work at this café. I really love coffee and meeting new people. So, what do you usually drink at a café?", time: '9:41' },
@@ -901,7 +899,6 @@ function AppContent() {
     voiceSessionReadyRef.current = false;
     voiceReplyIdRef.current += 1;
     voiceAssistantTextRef.current = '';
-    voiceTtsPlayingRef.current = false;
     setRecording(false);
     setVoiceStatus('idle');
 
@@ -1004,73 +1001,7 @@ function AppContent() {
 
 
 
-  const speakHulkWithElevenLabs = async (text: string, runId: number, replyId: number) => {
-    const cleanText = text.trim();
-    if (!cleanText) return;
-
-    voiceTtsPlayingRef.current = true;
-    setVoiceStatus('speaking');
-
-    const response = await fetch(`${API_BASE_URL}/api/tts`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: cleanText, characterId: 'hulk' }),
-    });
-
-    const data: {
-      success?: boolean;
-      audioBase64?: string;
-      sampleRate?: number;
-      error?: string;
-    } = await response.json();
-
-    if (!response.ok || data.success !== true || !data.audioBase64) {
-      throw new Error(data.error || `Hulk voice generation failed (HTTP ${response.status}).`);
-    }
-
-    if (runId !== voiceRunIdRef.current || replyId !== voiceReplyIdRef.current) return;
-
-    const currentContext = voiceAudioContextRef.current;
-    const currentQueue = voicePlaybackQueueRef.current;
-    if (!currentContext || !currentQueue) {
-      voiceTtsPlayingRef.current = false;
-      return;
-    }
-
-    const audioBuffer = await currentContext.decodePCMInBase64(
-      data.audioBase64,
-      data.sampleRate || LIVE_OUTPUT_SAMPLE_RATE,
-      1,
-    );
-
-    if (runId !== voiceRunIdRef.current || replyId !== voiceReplyIdRef.current) return;
-
-    currentQueue.enqueueBuffer(audioBuffer);
-
-    // BufferQueueSourceNode.start() is one-shot. Track the actual queue object,
-    // not just the session state, so interruptions cannot start it a second time.
-    if (voicePlaybackStartedQueueRef.current !== currentQueue) {
-      voicePlaybackStartedQueueRef.current = currentQueue;
-      currentQueue.start();
-    }
-
-    const durationMs = Number.isFinite(audioBuffer.duration)
-      ? Math.max(250, audioBuffer.duration * 1000 + 150)
-      : Math.max(1200, cleanText.length * 65);
-
-    await new Promise<void>(resolve => setTimeout(resolve, durationMs));
-
-    if (
-      runId === voiceRunIdRef.current &&
-      replyId === voiceReplyIdRef.current &&
-      voiceStreamingRef.current
-    ) {
-      voiceTtsPlayingRef.current = false;
-      setVoiceStatus('listening');
-    }
-  };
-
-  const startVoice = async () => {
+  const startVoice = async () => {  const startVoice = async () => {
     if (voiceStatus === 'connecting' || voiceStreamingRef.current) return;
 
     const runId = voiceRunIdRef.current + 1;
@@ -1097,7 +1028,7 @@ function AppContent() {
         voiceName?: GeminiVoiceName;
         characterId?: CharacterId;
         characterName?: string;
-        speechProvider?: 'gemini' | 'elevenlabs';
+        speechProvider?: 'gemini';
         systemInstruction?: string;
         error?: string;
       } = await tokenResponse.json();
@@ -1108,7 +1039,6 @@ function AppContent() {
       if (runId !== voiceRunIdRef.current) return;
 
       voiceAssistantTextRef.current = '';
-      voiceTtsPlayingRef.current = false;
 
       AudioManager.setSystemOptions({
         ios: {
@@ -1191,8 +1121,8 @@ function AppContent() {
             systemInstruction: {
               parts: [{
                 text: tokenData.systemInstruction || (
-                  selectedCharacter.id === 'hulk'
-                    ? 'You are Hulk, a brave and encouraging English practice partner. Use clear, simple English for an A2 learner.'
+                  selectedCharacter.id === 'spongebob'
+                    ? 'You are SpongeBob, a cheerful, playful and optimistic English practice buddy. Use bright, upbeat and expressive delivery with simple clear English for an A2 learner. Be kind, funny and encouraging.'
                     : EMMA_LIVE_PROMPT
                 ),
               }],
@@ -1224,21 +1154,12 @@ function AppContent() {
           if (serverContent.interrupted) {
             voiceReplyIdRef.current += 1;
             voiceAssistantTextRef.current = '';
-            voiceTtsPlayingRef.current = false;
             // Keep the queue's started state: BufferQueueSourceNode.start() is one-shot.
             voicePlaybackQueueRef.current?.clearBuffers();
             setVoiceStatus('listening');
           }
 
           if (serverContent.inputTranscription?.text) {
-            // Hulk's TTS is a separate audio clip. Stop the current clip as soon
-            // as the user starts a new utterance, so voice chat stays interruptible.
-            if (selectedCharacter.id === 'hulk' && voiceTtsPlayingRef.current) {
-              voiceReplyIdRef.current += 1;
-              voiceTtsPlayingRef.current = false;
-              voicePlaybackQueueRef.current?.clearBuffers();
-              setVoiceStatus('listening');
-            }
             setVoiceTranscript(`You: ${serverContent.inputTranscription.text}`);
           }
 
@@ -1250,15 +1171,12 @@ function AppContent() {
 
           const parts = serverContent.modelTurn?.parts ?? [];
 
-          // Hulk's Gemini audio is only used to produce the transcript. His audible
-          // reply is generated by the custom ElevenLabs voice below.
-          if (selectedCharacter.id !== 'hulk') {
-            for (const part of parts) {
-              const audioData = part.inlineData?.data;
-              if (!audioData) continue;
+          // Both active characters play native Gemini Live audio directly.
+          for (const part of parts) {
+            const audioData = part.inlineData?.data;
+            if (!audioData) continue;
 
             setVoiceStatus('speaking');
-
             const replyId = voiceReplyIdRef.current;
 
             voiceDecodeChainRef.current = voiceDecodeChainRef.current
@@ -1267,7 +1185,6 @@ function AppContent() {
 
                 const currentContext = voiceAudioContextRef.current;
                 const currentQueue = voicePlaybackQueueRef.current;
-
                 if (!currentContext || !currentQueue) return;
 
                 const audioBuffer = await currentContext.decodePCMInBase64(
@@ -1277,37 +1194,22 @@ function AppContent() {
                 );
 
                 if (replyId !== voiceReplyIdRef.current) return;
-
                 currentQueue.enqueueBuffer(audioBuffer);
 
-                // start() is one-shot for this queue. Never reset this on interruption.
+                // BufferQueueSourceNode.start() is one-shot for each queue.
                 if (voicePlaybackStartedQueueRef.current !== currentQueue) {
                   voicePlaybackStartedQueueRef.current = currentQueue;
-                              currentQueue.start();
+                  currentQueue.start();
                 }
               })
               .catch(error => {
-                console.error('Emma audio playback error:', error);
+                console.error('Gemini Live audio playback error:', error);
               });
-            }
           }
 
           if (serverContent.turnComplete && voiceStreamingRef.current) {
-            const completedReply = voiceAssistantTextRef.current.trim();
             voiceAssistantTextRef.current = '';
-
-            if (selectedCharacter.id === 'hulk' && completedReply) {
-              const replyId = voiceReplyIdRef.current;
-              void speakHulkWithElevenLabs(completedReply, runId, replyId).catch(error => {
-                console.error('Hulk audio playback error:', error);
-                if (runId === voiceRunIdRef.current && replyId === voiceReplyIdRef.current) {
-                  voiceTtsPlayingRef.current = false;
-                  setVoiceStatus('error');
-                }
-              });
-            } else {
-              setVoiceStatus('listening');
-            }
+            setVoiceStatus('listening');
           }
         } catch (error) {
           console.error('Gemini Live message error:', error);
@@ -2253,7 +2155,7 @@ function AppContent() {
             <View style={styles.voiceSettingsHeader}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.voiceSettingsTitle}>Choose your character</Text>
-                <Text style={styles.voiceSettingsSubtitle}>Choose your English speaking partner. Emma has a gentle voice, while Hulk uses your custom voice.</Text>
+                <Text style={styles.voiceSettingsSubtitle}>Choose your English speaking partner. Emma has a gentle voice, while SpongeBob has an upbeat Gemini voice.</Text>
               </View>
               <Pressable
                 style={styles.voiceSettingsClose}
