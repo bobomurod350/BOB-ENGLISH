@@ -16,6 +16,15 @@ const CHAT_MODEL = process.env.GEMINI_CHAT_MODEL || 'gemini-3.1-flash-lite';
 const LIVE_MODEL = process.env.GEMINI_LIVE_MODEL || 'gemini-3.8-live';
 const apiKey = process.env.GEMINI_API_KEY;
 
+// ElevenLabs credentials and output settings (secrets remain backend-only).
+const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
+const ELEVENLABS_VOICE_ID =
+  process.env.ELEVENLABS_VOICE_ID || 'eJA77D6JPL68vUCetEQR';
+const ELEVENLABS_MODEL_ID =
+  process.env.ELEVENLABS_MODEL_ID || 'eleven_flash_v2_5';
+// The request below explicitly asks ElevenLabs for pcm_24000.
+const ELEVENLABS_OUTPUT_SAMPLE_RATE = 24000;
+
 const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
 const liveAi = apiKey
