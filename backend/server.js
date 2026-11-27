@@ -61,6 +61,7 @@ const ALLOWED_PACES = new Set(['slow', 'natural', 'fast']);
 
 // Character IDs are allow-listed on the server. The app can choose a persona,
 // but it cannot submit an arbitrary voice name or arbitrary system instruction.
+// Emma is the only supported tutor and voice profile.
 const CHARACTERS = Object.freeze({
   emma: {
     name: 'Emma',
@@ -68,14 +69,6 @@ const CHARACTERS = Object.freeze({
     speechProvider: 'gemini',
     persona:
       'You are Emma, a friendly, patient female AI English tutor. Be warm, calm, encouraging and natural. Speak in a gentle, soft feminine voice. Help the learner practise everyday English, correct mistakes kindly, and ask one simple follow-up question. Keep your sentences clear and suitable for an A2 learner.',
-  },
-
-  spongebob: {
-    name: 'SpongeBob',
-    voiceName: 'Puck',
-    speechProvider: 'gemini',
-    persona:
-      'Be cheerful, playful, optimistic, expressive and full of positive energy. Use lively, upbeat delivery and simple, clear English for an A2 learner. Add gentle humor, stay kind and patient, and encourage the learner to keep speaking. Use an original animated-comedy style without imitating any specific actor or existing character voice.',
   },
 });
 
@@ -280,16 +273,10 @@ app.post('/api/chat', async (req, res) => {
 app.post('/api/live-token', async (req, res) => {
   if (!requireGemini(res)) return;
 
-  const requestedCharacterId = req.body?.characterId;
   const requestedPace = req.body?.speakingPace;
 
-  const characterId =
-    typeof requestedCharacterId === 'string' &&
-    Object.hasOwn(CHARACTERS, requestedCharacterId)
-      ? requestedCharacterId
-      : 'emma';
-
-  const character = CHARACTERS[characterId];
+  const characterId = 'emma';
+  const character = CHARACTERS.emma;
   const voiceName = character.voiceName;
 
   const speakingPace = ALLOWED_PACES.has(requestedPace)
