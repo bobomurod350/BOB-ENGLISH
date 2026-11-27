@@ -2047,7 +2047,7 @@ function AppContent() {
             })}
             {vocabularyQuizChecked ? <Text style={styles.tipText}>{currentWord.meaning}</Text> : null}
             {!vocabularyQuizChecked ? (
-              <AppButton title="Check answer" icon="checkmark" onPress={checkVocabularyAnswer} disabled={vocabularyQuizChoice === null} />
+              <AppButton title="Check answer" icon="checkmark" onPress={checkVocabularyAnswer} />
             ) : (
               <AppButton title={vocabularyIndex === VOCABULARY_ITEMS.length - 1 ? 'Finish quiz' : 'Next word'} icon="arrow-forward" onPress={nextVocabularyQuestion} />
             )}
