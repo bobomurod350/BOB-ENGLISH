@@ -46,7 +46,7 @@ const CHAT_MODES = Object.freeze({
   challenge: 'CHALLENGE MODE: Make the learner do the thinking. Ask follow-up questions, give hints instead of the full answer, and encourage complete sentences. At the end, give a short score out of 5 with one strength and one improvement.',
 });
 
-const EMMA_PROMPT = (level = 'A2', scenario = 'Free Conversation', practiceMode = 'coach') => {
+const EMMA_PROMPT = (level = 'A2', scenario = 'Free Conversation', practiceMode = 'coach', learnerProgress = null) => {
   const sceneInstructions = CHAT_SCENARIOS[scenario] || CHAT_SCENARIOS['Free Conversation'];
   const modeInstructions = CHAT_MODES[practiceMode] || CHAT_MODES.coach;
 
@@ -54,6 +54,10 @@ const EMMA_PROMPT = (level = 'A2', scenario = 'Free Conversation', practiceMode 
     'You are Emma, a friendly female AI English tutor for BOB ENGLISH.',
     '',
     'STUDENT LEVEL: ' + level,
+    '',
+    'LEARNER PROGRESS PROFILE:',
+    learnerProgress && typeof learnerProgress === 'object' ? JSON.stringify(learnerProgress).slice(0, 2500) : 'No saved progress profile supplied.',
+    'Use this progress profile to choose vocabulary and gently target weak areas. Never invent progress data.',
     '',
     'YOUR PERSONALITY:',
     '- Warm, natural, encouraging and respectful.',
@@ -226,7 +230,7 @@ app.get('/api/characters', (_req, res) => {
 app.post('/api/chat', async (req, res) => {
   if (!requireGemini(res)) return;
 
-  const { message, history = [], studentLevel = 'A2', scenario = 'Free Conversation', practiceMode = 'coach' } = req.body ?? {};
+  const { message, history = [], studentLevel = 'A2', scenario = 'Free Conversation', practiceMode = 'coach', learnerId } = req.body ?? {};
 
   if (
     typeof message !== 'string' ||
@@ -284,7 +288,12 @@ app.post('/api/chat', async (req, res) => {
   try {
     const interaction = await ai.interactions.create({
       model: CHAT_MODEL,
-      system_instruction: EMMA_PROMPT(level, safeScenario, safePracticeMode),
+      system_instruction: EMMA_PROMPT(
+        level,
+        safeScenario,
+        safePracticeMode,
+        validateLearnerId(learnerId) ? getLearnerRecord(learnerId).skills : null,
+      ),
       input:
         'Continue this English learning conversation. ' +
         "Answer the student's latest message naturally.\n\n" +
