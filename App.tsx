@@ -98,7 +98,7 @@ const C = {
 };
 
 const EMMA = require('./assets/emma-cafe.jpg');
-const API_BASE_URL = (process.env.EXPO_PUBLIC_API_URL || '').replace(/\\/$/, '');
+const API_BASE_URL = (process.env.EXPO_PUBLIC_API_URL || 'https://REPLACE_WITH_DEPLOYED_BACKEND_URL').replace(/\\/$/, '');
 const LEARNER_ID_KEY = 'bob-english-learner-id';
 const LIVE_SAMPLE_RATE = 16000;
 const LIVE_OUTPUT_SAMPLE_RATE = 24000;
