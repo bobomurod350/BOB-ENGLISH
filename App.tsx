@@ -869,6 +869,7 @@ function AppContent() {
   }, []);
 
   const loadLearningProgress = useCallback(async () => {
+    if (!learnerReady || !learnerId) return;
     if (!API_BASE_URL) {
       setLearningApiMessage('Add EXPO_PUBLIC_API_URL to connect to the live learning service.');
       return;
@@ -879,17 +880,23 @@ function AppContent() {
       if (!response.ok || data.success !== true) throw new Error(data.error || 'Could not load progress.');
       const skills = data.progress?.skills || {};
       setSkillProgress(skills);
-      setSkillLevels(data.progress?.levels || {});
+      const skillLevelMap = Object.fromEntries(Object.entries(skills).map(([skill, value]: [string, any]) => [skill, value.level]));
+      setSkillLevels(current => ({ ...current, ...skillLevelMap }));
+      setSavedWords(data.progress?.savedWords || []);
     } catch (error) {
       setLearningApiMessage(error instanceof Error ? error.message : 'Progress service is unavailable.');
     }
-  }, [learnerId]);
+  }, [learnerReady, learnerId]);
 
   useEffect(() => {
-    void loadLearningProgress();
-  }, [loadLearningProgress]);
+    if (learnerReady && learnerId) void loadLearningProgress();
+  }, [learnerReady, learnerId, loadLearningProgress]);
 
   const generateLearningActivity = useCallback(async (skill: string, goal?: string) => {
+    if (!learnerReady || !learnerId) {
+      setLearningApiMessage('Your learner profile is still loading. Please retry in a moment.');
+      return null;
+    }
     if (!API_BASE_URL) {
       setLearningApiMessage('Set EXPO_PUBLIC_API_URL to your deployed backend URL before generating AI lessons.');
       return null;
@@ -923,7 +930,7 @@ function AppContent() {
     } finally {
       setGeneratingSkill(null);
     }
-  }, [learnerLevel, skillLevels, skillProgress, recentTopics]);
+  }, [learnerLevel, learnerReady, learnerId, skillLevels, skillProgress, recentTopics]);
 
   const submitLearningAttempt = useCallback(async (
     skill: string,
@@ -932,6 +939,10 @@ function AppContent() {
     total: number,
     level?: string,
   ) => {
+    if (!learnerReady || !learnerId) {
+      setLearningApiMessage('Your learner profile is still loading. Please retry the score submission.');
+      return;
+    }
     if (!API_BASE_URL) {
       setLearningApiMessage('Your attempt is not synced. Configure EXPO_PUBLIC_API_URL first.');
       return;
@@ -949,7 +960,7 @@ function AppContent() {
     } catch (error) {
       setLearningApiMessage(error instanceof Error ? error.message : 'Attempt sync failed.');
     }
-  }, [learnerId, learnerLevel, skillLevels]);
+  }, [learnerReady, learnerId, learnerLevel, skillLevels]);
 
   const goBack = useCallback(() => {
     const previous = historyRef.current.pop();
