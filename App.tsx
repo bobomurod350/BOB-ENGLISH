@@ -1009,7 +1009,7 @@ function AppContent() {
         body: JSON.stringify({
           message,
           history,
-          studentLevel: 'A2',
+          studentLevel: skillLevels.chat || learnerLevel,
           scenario,
           practiceMode: chatMode,
         }),
