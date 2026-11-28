@@ -831,6 +831,89 @@ function AppContent() {
     Keyboard.dismiss();
   }, []);
 
+  const loadLearningProgress = useCallback(async () => {
+    if (!API_BASE_URL) {
+      setLearningApiMessage('Add EXPO_PUBLIC_API_URL to connect to the live learning service.');
+      return;
+    }
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/learning/progress/${learnerId}`);
+      const data = await response.json();
+      if (!response.ok || data.success !== true) throw new Error(data.error || 'Could not load progress.');
+      const skills = data.progress?.skills || {};
+      setSkillProgress(skills);
+      setSkillLevels(data.progress?.levels || {});
+    } catch (error) {
+      setLearningApiMessage(error instanceof Error ? error.message : 'Progress service is unavailable.');
+    }
+  }, [learnerId]);
+
+  useEffect(() => {
+    void loadLearningProgress();
+  }, [loadLearningProgress]);
+
+  const generateLearningActivity = useCallback(async (skill: string, goal?: string) => {
+    if (!API_BASE_URL) {
+      setLearningApiMessage('Set EXPO_PUBLIC_API_URL to your deployed backend URL before generating AI lessons.');
+      return null;
+    }
+    setGeneratingSkill(skill);
+    setLearningApiMessage('');
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/learning/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          skill,
+          studentLevel: skillLevels[skill] || learnerLevel,
+          progress: skillProgress,
+          recentTopics,
+          learnerGoal: goal || 'Build confident everyday English.',
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok || data.success !== true || !data.activity) {
+        throw new Error(data.error || 'The AI could not create a lesson.');
+      }
+      setGeneratedActivities(current => ({ ...current, [skill]: data.activity }));
+      if (typeof data.activity.title === 'string') {
+        setRecentTopics(current => [data.activity.title, ...current].slice(0, 12));
+      }
+      return data.activity;
+    } catch (error) {
+      setLearningApiMessage(error instanceof Error ? error.message : 'AI lesson generation failed.');
+      return null;
+    } finally {
+      setGeneratingSkill(null);
+    }
+  }, [learnerLevel, skillLevels, skillProgress, recentTopics]);
+
+  const submitLearningAttempt = useCallback(async (
+    skill: string,
+    topic: string,
+    correct: number,
+    total: number,
+    level?: string,
+  ) => {
+    if (!API_BASE_URL) {
+      setLearningApiMessage('Your attempt is not synced. Configure EXPO_PUBLIC_API_URL first.');
+      return;
+    }
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/learning/attempt`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ learnerId, skill, topic, correct, total, level: level || skillLevels[skill] || learnerLevel }),
+      });
+      const data = await response.json();
+      if (!response.ok || data.success !== true) throw new Error(data.error || 'Could not save the attempt.');
+      setSkillProgress(data.progress?.skills || {});
+      setSkillLevels(data.progress?.levels || {});
+    } catch (error) {
+      setLearningApiMessage(error instanceof Error ? error.message : 'Attempt sync failed.');
+    }
+  }, [learnerId, learnerLevel, skillLevels]);
+
   const goBack = useCallback(() => {
     const previous = historyRef.current.pop();
     const destination = previous || activeTab;
