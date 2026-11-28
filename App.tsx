@@ -1045,6 +1045,7 @@ function AppContent() {
           studentLevel: skillLevels.chat || learnerLevel,
           scenario,
           practiceMode: chatMode,
+          learnerId,
         }),
       });
 
