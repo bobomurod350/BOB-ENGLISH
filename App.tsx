@@ -748,28 +748,8 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState<Tab>('home');
   const screenRef = useRef<Screen>('welcome');
   const historyRef = useRef<Screen[]>([]);
-  const [learnerId, setLearnerId] = useState('');
-  const [learnerReady, setLearnerReady] = useState(false);
-  useEffect(() => {
-    let active = true;
-    void import('@react-native-async-storage/async-storage').then(async storage => {
-      try {
-        let id = await storage.default.getItem(LEARNER_ID_KEY);
-        if (!id) {
-          id = ('learner_' + Math.random().toString(36).slice(2) + Date.now().toString(36)).slice(0, 72);
-          await storage.default.setItem(LEARNER_ID_KEY, id);
-        }
-        if (active) setLearnerId(id);
-      } catch (error) {
-        console.warn('Could not restore learner identity:', error);
-        if (active) setLearnerApiError('Your learner profile could not be opened on this device.');
-      } finally {
-        if (active) setLearnerReady(true);
-      }
-    });
-    return () => { active = false; };
-  }, []);
-
+  const [learnerId] = useState(() => ('learner_' + Math.random().toString(36).slice(2) + Date.now().toString(36)).slice(0, 72));
+  const learnerReady = true;
   const [learnerApiError, setLearnerApiError] = useState('');
   const [learnerLevel, setLearnerLevel] = useState('A2');
   const [skillLevels, setSkillLevels] = useState<Record<string, string>>({
