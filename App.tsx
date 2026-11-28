@@ -1097,7 +1097,7 @@ function AppContent() {
           practiceMode: chatMode,
           learnerId,
           learnerProgress: skillProgress,
-          scenarioContext: activeGeneratedScenario && generatedActivities.scenarios ? {
+          scenarioContext: activeGeneratedScenario && chatMode !== 'conversation' && generatedActivities.scenarios ? {
             title: generatedActivities.scenarios.title,
             context: generatedActivities.scenarios.context,
             role: generatedActivities.scenarios.role,
@@ -2322,13 +2322,13 @@ function AppContent() {
   const renderChat = () => (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}>
       <View style={styles.chatHeader}>
-        <Pressable onPress={goBack} style={styles.backButton}><Icon name="chevron-back" size={22} /></Pressable>
+        <AnimatedIconButton name="chevron-back" size={42} iconSize={21} accessibilityLabel="Go back" onPress={goBack} />
         <Avatar size={40} />
         <View style={{ flex: 1, marginLeft: 10 }}>
           <Text style={styles.chatHeaderTitle}>Emma <Text style={styles.chatHeaderAI}>(AI Tutor)</Text></Text>
           <View style={styles.onlineRow}>
             <View style={styles.onlineDot} />
-            <Text style={styles.onlineText}>Online · {scenario} · {chatMode === 'coach' ? 'Gentle corrections' : chatMode === 'challenge' ? 'Challenge mode' : 'Free conversation'}</Text>
+            <Text style={styles.onlineText}>{activeGeneratedScenario && chatMode !== 'conversation' ? 'Scenario role-play' : scenario} · {chatMode === 'coach' ? 'Gentle corrections' : chatMode === 'challenge' ? 'Challenge mode' : 'Free conversation'}</Text>
           </View>
         </View>
         <AnimatedIconButton name="call-outline" size={42} iconSize={19} accessibilityLabel="Start voice practice with Emma" onPress={() => navigate('voice')} />
