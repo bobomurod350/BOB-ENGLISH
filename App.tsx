@@ -838,6 +838,7 @@ function AppContent() {
   const [voiceStatus, setVoiceStatus] = useState<VoiceStatus>('idle');
   const [voiceTranscript, setVoiceTranscript] = useState('');
   const [scenario, setScenario] = useState('Café Conversation');
+  const [activeGeneratedScenario, setActiveGeneratedScenario] = useState(false);
   const [voiceSettingsVisible, setVoiceSettingsVisible] = useState(false);
   const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>({ speakingPace: 'natural' });
   const [voiceSettingsDraft, setVoiceSettingsDraft] = useState<VoiceSettings>({ speakingPace: 'natural' });
@@ -1040,8 +1041,9 @@ function AppContent() {
     Keyboard.dismiss();
   };
 
-  const openChat = (nextScenario = 'Free Conversation') => {
+  const openChat = (nextScenario = 'Free Conversation', useGeneratedScenario = false) => {
     setChatMode('coach');
+    setActiveGeneratedScenario(useGeneratedScenario);
     setScenario(nextScenario);
     setChatMessages([{
       id: Date.now(),
@@ -1095,7 +1097,7 @@ function AppContent() {
           practiceMode: chatMode,
           learnerId,
           learnerProgress: skillProgress,
-          scenarioContext: generatedActivities.scenarios ? {
+          scenarioContext: activeGeneratedScenario && generatedActivities.scenarios ? {
             title: generatedActivities.scenarios.title,
             context: generatedActivities.scenarios.context,
             role: generatedActivities.scenarios.role,
@@ -2313,7 +2315,7 @@ function AppContent() {
         </View>
       </ImageBackground>
       {renderAIActivityPanel('scenarios', 'Your next real-life scene', 'Generate a role, goal, opening line and useful phrases. Then practise it in Emma Chat.')}
-      <AppButton title="Start this role-play with Emma" icon="chatbubble-ellipses-outline" disabled={!generatedActivities.scenarios} onPress={() => openChat('Free Conversation')} />
+      <AppButton title="Start this role-play with Emma" icon="chatbubble-ellipses-outline" disabled={!generatedActivities.scenarios} onPress={() => openChat('Free Conversation', true)} />
     </StaggeredScrollView>
   );
 
