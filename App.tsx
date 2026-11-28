@@ -2540,12 +2540,14 @@ function AppContent() {
         <Text style={styles.cardKicker}>EMMA AI · {skill.toUpperCase()}</Text>
         <Text style={styles.challengeQuestion}>{activity?.title || title}</Text>
         <Text style={styles.mutedText}>{description}</Text>
-        <Text style={styles.mutedText}>Your level: {skillLevels[skill] || learnerLevel} · Mastery: {skillProgress[skill]?.mastery ?? 0}%</Text>
+        <Text style={styles.mutedText}>Level {skillLevels[skill] || learnerLevel} · Mastery {skillProgress[skill]?.mastery ?? 0}% · {skillProgress[skill]?.attempts ?? 0} attempts</Text>
         {activity ? (
           <View style={{ marginTop: 14 }}>
             {activity.context ? <Text style={styles.wordMeaning}>{activity.context}</Text> : null}
+            {activity.role ? <Text style={styles.wordMeaning}>Your role: {activity.role}</Text> : null}
+            {activity.goal ? <Text style={styles.wordMeaning}>Goal: {activity.goal}</Text> : null}
+            {activity.openingLine ? <Text style={styles.wordExampleText}>Emma: “{activity.openingLine}”</Text> : null}
             {activity.explanation ? <Text style={styles.wordMeaning}>{activity.explanation}</Text> : null}
-            {activity.mission ? <Text style={styles.wordMeaning}>{activity.mission}</Text> : null}
             {activity.script ? (
               <>
                 <Text style={styles.wordExampleLabel}>LISTENING SCRIPT</Text>
@@ -2556,59 +2558,64 @@ function AppContent() {
             {Array.isArray(activity.usefulPhrases) ? activity.usefulPhrases.map((phrase: string, index: number) => <Text key={index} style={styles.wordExampleText}>• {phrase}</Text>) : null}
             {Array.isArray(activity.words) ? activity.words.map((word: any, index: number) => (
               <View key={index} style={styles.savedWordRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.wordName}>{word.word}</Text>
-                  <Text style={styles.wordMeaning}>{word.meaning}</Text>
-                  <Text style={styles.wordExampleText}>{word.example}</Text>
-                </View>
-                <Pressable style={styles.wordAction} onPress={() => Speech.speak(word.word, { language: 'en-US' })}>
-                  <Icon name="volume-high-outline" color={C.gold} size={18} />
-                </Pressable>
-                <Pressable style={styles.wordAction} onPress={() => toggleSaveWord(word.word)}>
-                  <Icon name="bookmark-outline" color={C.gold} size={18} />
-                </Pressable>
+                <View style={{ flex: 1 }}><Text style={styles.wordName}>{word.word}</Text><Text style={styles.wordMeaning}>{word.meaning}</Text><Text style={styles.wordExampleText}>{word.example}</Text></View>
+                <Pressable style={styles.wordAction} onPress={() => Speech.speak(word.word, { language: 'en-US' })}><Icon name="volume-high-outline" color={C.gold} size={18} /></Pressable>
+                <Pressable style={styles.wordAction} onPress={() => toggleSaveWord(word.word)}><Icon name={savedWords.includes(word.word) ? 'bookmark' : 'bookmark-outline'} color={C.gold} size={18} /></Pressable>
               </View>
             )) : null}
             {Array.isArray(activity.examples) ? activity.examples.map((example: string, index: number) => <Text key={index} style={styles.wordExampleText}>{example}</Text>) : null}
             {Array.isArray(activity.prompts) ? activity.prompts.map((prompt: string, index: number) => <Text key={index} style={styles.wordExampleText}>{index + 1}. {prompt}</Text>) : null}
             {Array.isArray(activity.successCriteria) ? activity.successCriteria.map((item: string, index: number) => <Text key={index} style={styles.tipText}>✓ {item}</Text>) : null}
-            {Array.isArray(activity.questions) ? activity.questions.map((question: any, index: number) => (
-              <View key={index} style={styles.savedWordRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.wordExampleLabel}>QUESTION {index + 1}</Text>
-                  <Text style={styles.wordMeaning}>{question.prompt}</Text>
-                  {Array.isArray(question.options) ? question.options.map((option: string, optionIndex: number) => <Text key={optionIndex} style={styles.wordExampleText}>{String.fromCharCode(65 + optionIndex)}. {option}</Text>) : null}
-                  <Text style={styles.tipText}>Answer key: {question.options?.[question.answerIndex] || 'Review with Emma'}</Text>
-                  <Text style={styles.mutedText}>{question.explanation}</Text>
+            {Array.isArray(activity.questions) ? activity.questions.map((question: any, index: number) => {
+              const selected = generatedAnswerChoices[skill]?.[index];
+              const checked = Boolean(generatedAnswerChecked[skill]);
+              const correct = selected === question.answerIndex;
+              return (
+                <View key={index} style={styles.savedWordRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.wordExampleLabel}>QUESTION {index + 1}</Text>
+                    <Text style={styles.wordMeaning}>{question.prompt}</Text>
+                    {Array.isArray(question.options) ? question.options.map((option: string, optionIndex: number) => {
+                      const isSelected = selected === optionIndex;
+                      const isCorrect = checked && optionIndex === question.answerIndex;
+                      return (
+                        <Pressable key={optionIndex} disabled={checked} onPress={() => setGeneratedAnswerChoices(current => ({ ...current, [skill]: { ...(current[skill] || {}), [index]: optionIndex } }))} style={[styles.quizOption, isSelected && styles.quizOptionSelected, isCorrect && styles.quizOptionCorrect]}>
+                          <Text style={styles.quizOptionText}>{String.fromCharCode(65 + optionIndex)}. {option}</Text>
+                          {isCorrect ? <Icon name="checkmark-circle" color={C.green} size={18} /> : null}
+                        </Pressable>
+                      );
+                    }) : null}
+                    {checked ? <Text style={styles.tipText}>{correct ? 'Correct.' : 'Not quite.'} {question.explanation}</Text> : null}
+                  </View>
                 </View>
-              </View>
-            )) : null}
-            <Text style={styles.mutedText}>Generated activity preview. Complete an exercise to record a verified score.</Text>
+              );
+            }) : null}
+            {Array.isArray(activity.questions) ? (
+              <AppButton title={generatedAnswerChecked[skill] ? 'Generate another activity' : 'Check my answers'} icon="checkmark" disabled={!generatedAnswerChecked[skill] && (activity.questions.some((_: any, index: number) => generatedAnswerChoices[skill]?.[index] === undefined))} onPress={() => {
+                if (!generatedAnswerChecked[skill]) {
+                  const score = activity.questions.filter((question: any, index: number) => generatedAnswerChoices[skill]?.[index] === question.answerIndex).length;
+                  setGeneratedAnswerChecked(current => ({ ...current, [skill]: true }));
+                  void submitLearningAttempt(skill, activity.topic || activity.title || skill, score, activity.questions.length, skillLevels[skill] || learnerLevel);
+                } else {
+                  setGeneratedActivities(current => { const next = { ...current }; delete next[skill]; return next; });
+                  setGeneratedAnswerChoices(current => { const next = { ...current }; delete next[skill]; return next; });
+                  setGeneratedAnswerChecked(current => { const next = { ...current }; delete next[skill]; return next; });
+                  void generateLearningActivity(skill);
+                }
+              }} />
+            ) : null}
+            <Text style={styles.mutedText}>Generated from your learning profile. Your score is saved after checking answers.</Text>
           </View>
         ) : null}
-        <AppButton title={isBusy ? 'Emma is preparing your lesson…' : 'Generate a fresh AI lesson'} icon="sparkles" disabled={isBusy} onPress={() => { void generateLearningActivity(skill); }} />
+        <AppButton title={isBusy ? 'Emma is preparing your lesson…' : activity ? 'Refresh with a new AI lesson' : 'Generate a fresh AI lesson'} icon="sparkles" disabled={isBusy} onPress={() => {
+          setGeneratedAnswerChoices(current => ({ ...current, [skill]: {} }));
+          setGeneratedAnswerChecked(current => ({ ...current, [skill]: false }));
+          void generateLearningActivity(skill);
+        }} />
         {learningApiMessage ? <Text style={styles.tipText}>{learningApiMessage}</Text> : null}
       </View>
     );
   };
-
-  const renderGrammar = () => (
-    <StaggeredScrollView {...scrollProps} animationKey={screen}>
-      <ScreenHeader title="Grammar Detective" onBack={goBack} />
-      <View style={styles.pageIntro}>
-        <Text style={styles.eyebrow}>DISCOVER · PRACTISE · MASTER</Text>
-        <Text style={styles.pageHeading}>Grammar that moves with you</Text>
-        <Text style={styles.mutedText}>Emma finds your weak points and creates a new lesson at your level.</Text>
-      </View>
-      {renderAIActivityPanel('grammar', 'Your next grammar case', 'Generate a fresh explanation, examples and a new question set.')}
-      <View style={styles.challengePanel}>
-        <Text style={styles.cardKicker}>YOUR GRAMMAR PROGRESS</Text>
-        <Text style={styles.challengeQuestion}>{skillLevels.grammar || learnerLevel}</Text>
-        <Text style={styles.mutedText}>Mastery: {skillProgress.grammar?.mastery ?? 0}% · Attempts: {skillProgress.grammar?.attempts ?? 0}</Text>
-        <ProgressBar progress={skillProgress.grammar?.mastery ?? 0} />
-      </View>
-    </StaggeredScrollView>
-  );
 
   const renderMainContent = () => {
     switch (screen) {
