@@ -2621,7 +2621,7 @@ function AppContent() {
       case 'grammar': return renderGrammar();
       case 'chat': return renderChat();
       case 'voice': return renderVoice();
-      case 'correction': return renderCorrection();
+      case 'correction': return renderGrammar();
       case 'listening': return renderListening();
       case 'lesson': return renderLesson();
       default: return renderHome();
