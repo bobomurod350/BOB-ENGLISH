@@ -26,7 +26,7 @@ import { AudioContext, AudioManager, AudioRecorder } from 'react-native-audio-ap
 import * as Speech from 'expo-speech';
 
 type IconName = string;
-type Screen = 'welcome' | 'home' | 'practice' | 'learn' | 'progress' | 'profile' | 'chat' | 'voice' | 'vocabulary' | 'correction' | 'lesson' | 'listening';
+type Screen = 'welcome' | 'home' | 'practice' | 'learn' | 'progress' | 'profile' | 'chat' | 'voice' | 'vocabulary' | 'grammar' | 'correction' | 'lesson' | 'listening';
 type Tab = 'home' | 'practice' | 'learn' | 'progress' | 'profile';
 type ChatMessage = { id: number; from: 'emma' | 'you'; text: string; time: string };
 type VoiceStatus = 'idle' | 'connecting' | 'listening' | 'speaking' | 'error';
@@ -2611,6 +2611,24 @@ function AppContent() {
     );
   };
 
+  const renderGrammar = () => (
+    <StaggeredScrollView {...scrollProps} animationKey={screen}>
+      <ScreenHeader title="Grammar Detective" onBack={goBack} />
+      <View style={styles.pageIntro}>
+        <Text style={styles.eyebrow}>DISCOVER · PRACTISE · MASTER</Text>
+        <Text style={styles.pageHeading}>Grammar that moves with you</Text>
+        <Text style={styles.mutedText}>Emma finds your weak points and creates a new lesson at your level.</Text>
+      </View>
+      {renderAIActivityPanel('grammar', 'Your next grammar case', 'Generate a fresh explanation, examples and a new question set.')}
+      <View style={styles.challengePanel}>
+        <Text style={styles.cardKicker}>YOUR GRAMMAR PROGRESS</Text>
+        <Text style={styles.challengeQuestion}>{skillLevels.grammar || learnerLevel}</Text>
+        <Text style={styles.mutedText}>Mastery: {skillProgress.grammar?.mastery ?? 0}% · Attempts: {skillProgress.grammar?.attempts ?? 0}</Text>
+        <ProgressBar progress={skillProgress.grammar?.mastery ?? 0} />
+      </View>
+    </StaggeredScrollView>
+  );
+
   const renderMainContent = () => {
     switch (screen) {
       case 'home': return renderHome();
@@ -2619,6 +2637,7 @@ function AppContent() {
       case 'progress': return renderProgress();
       case 'profile': return renderProfile();
       case 'vocabulary': return renderVocabulary();
+      case 'grammar': return renderGrammar();
       case 'chat': return renderChat();
       case 'voice': return renderVoice();
       case 'correction': return renderCorrection();
