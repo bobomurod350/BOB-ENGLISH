@@ -102,7 +102,6 @@ const C = {
 
 const EMMA = require('./assets/emma-cafe.jpg');
 const API_BASE_URL = (process.env.EXPO_PUBLIC_API_URL || 'https://REPLACE_WITH_DEPLOYED_BACKEND_URL').replace(/\\/$/, '');
-const LEARNER_ID_KEY = 'bob-english-learner-id';
 const LIVE_SAMPLE_RATE = 16000;
 const LIVE_OUTPUT_SAMPLE_RATE = 24000;
 
@@ -800,28 +799,8 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState<Tab>('home');
   const screenRef = useRef<Screen>('welcome');
   const historyRef = useRef<Screen[]>([]);
-  const [learnerId, setLearnerId] = useState('');
-  const [learnerReady, setLearnerReady] = useState(false);
-  useEffect(() => {
-    let active = true;
-    void import('@react-native-async-storage/async-storage').then(async storage => {
-      try {
-        let id = await storage.default.getItem(LEARNER_ID_KEY);
-        if (!id) {
-          id = ('learner_' + Math.random().toString(36).slice(2) + Date.now().toString(36)).slice(0, 72);
-          await storage.default.setItem(LEARNER_ID_KEY, id);
-        }
-        if (active) setLearnerId(id);
-      } catch (error) {
-        console.warn('Could not restore learner identity:', error);
-        if (active) setLearnerApiError('Your learner profile could not be opened on this device.');
-      } finally {
-        if (active) setLearnerReady(true);
-      }
-    });
-    return () => { active = false; };
-  }, []);
-  const [learnerApiError, setLearnerApiError] = useState('');
+  const [learnerId] = useState(() => ('learner_' + Math.random().toString(36).slice(2) + Date.now().toString(36)).slice(0, 72));
+  const learnerReady = true;
   const [learnerLevel, setLearnerLevel] = useState('A2');
   const [skillLevels, setSkillLevels] = useState<Record<string, string>>({
     chat: 'A2', scenarios: 'A2', vocabulary: 'A2', grammar: 'A2', listening: 'A2', speaking: 'A2',
