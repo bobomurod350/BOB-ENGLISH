@@ -2660,24 +2660,6 @@ function AppContent() {
     }
   };
 
-  const renderMainContent = () => {
-    switch (screen) {
-      case 'home': return renderHome();
-      case 'practice': return renderPractice();
-      case 'learn': return renderLearn();
-      case 'progress': return renderProgress();
-      case 'profile': return renderProfile();
-      case 'vocabulary': return renderVocabulary();
-      case 'grammar': return renderGrammar();
-      case 'chat': return renderChat();
-      case 'voice': return renderVoice();
-      case 'correction': return renderGrammar();
-      case 'listening': return renderListening();
-      case 'lesson': return renderLesson();
-      default: return renderHome();
-    }
-  };
-
   const isMainTab = (['home', 'practice', 'learn', 'progress', 'profile'] as Screen[]).includes(screen);
 
   const safeAreaEdges: ('top' | 'left' | 'right' | 'bottom')[] = (isMainTab || screen === 'welcome')
