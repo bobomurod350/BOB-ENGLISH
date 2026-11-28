@@ -2016,153 +2016,97 @@ function AppContent() {
   }
 
   const renderVocabulary = () => {
-    const currentWord = VOCABULARY_ITEMS[vocabularyIndex];
-    const savedVocabulary = VOCABULARY_ITEMS.filter(item => savedWords.includes(item.word));
-
-    const startVocabularyQuiz = () => {
-      setVocabularyMode('quiz');
-      setVocabularyIndex(0);
-      setVocabularyQuizChoice(null);
-      setVocabularyQuizChecked(false);
-      setVocabularyQuizScore(0);
-    };
-
-    const nextVocabularyCard = () => {
-      setVocabularyIndex(index => (index + 1) % VOCABULARY_ITEMS.length);
-      setVocabularyRevealed(false);
-    };
-
-    const checkVocabularyAnswer = () => {
-      if (vocabularyQuizChoice === null || vocabularyQuizChecked) return;
-      setVocabularyQuizChecked(true);
-      if (vocabularyQuizChoice === currentWord.quizAnswer) {
-        setVocabularyQuizScore(score => score + 1);
-      }
-    };
-
-    const nextVocabularyQuestion = () => {
-      if (vocabularyIndex < VOCABULARY_ITEMS.length - 1) {
-        setVocabularyIndex(index => index + 1);
-        setVocabularyQuizChoice(null);
-        setVocabularyQuizChecked(false);
-      } else {
-        Alert.alert(
-          'Vocabulary mission complete',
-          `You scored ${vocabularyQuizScore} out of ${VOCABULARY_ITEMS.length}. Try again to improve your memory.`,
-          [{ text: 'Try again', onPress: startVocabularyQuiz }, { text: 'Done', onPress: () => setVocabularyMode('cards') }],
-        );
-      }
-    };
-
+    const generated = generatedActivities.vocabulary;
+    const words = Array.isArray(generated?.words) ? generated.words : [];
+    const current = words[vocabularyIndex];
+    const saved = words.filter((word: any) => savedWords.includes(word.word));
     return (
       <StaggeredScrollView {...scrollProps} animationKey={screen}>
         <ScreenHeader title="Vocabulary Lab" onBack={goBack} />
         <View style={styles.pageIntro}>
           <Text style={styles.eyebrow}>REMEMBER · RECALL · USE</Text>
           <Text style={styles.pageHeading}>Words that stay with you</Text>
-          <Text style={styles.mutedText}>Learn by retrieval, not by reading the same list again.</Text>
+          <Text style={styles.mutedText}>A personal word collection generated for your level.</Text>
         </View>
-
         <View style={styles.wordSummary}>
-          <View><Text style={styles.wordSummaryNumber}>{VOCABULARY_ITEMS.length}</Text><Text style={styles.mutedText}>Practice words</Text></View>
+          <View><Text style={styles.wordSummaryNumber}>{words.length}</Text><Text style={styles.mutedText}>AI words</Text></View>
           <View style={styles.wordSummaryDivider} />
-          <View><Text style={styles.wordSummaryNumber}>{savedWords.length}</Text><Text style={styles.mutedText}>Saved words</Text></View>
+          <View><Text style={styles.wordSummaryNumber}>{savedWords.length}</Text><Text style={styles.mutedText}>Saved</Text></View>
           <View style={styles.wordSummaryDivider} />
-          <View><Text style={styles.wordSummaryNumber}>{VOCABULARY_ITEMS.length - vocabularyQuizScore}</Text><Text style={styles.mutedText}>To master</Text></View>
+          <View><Text style={styles.wordSummaryNumber}>{skillProgress.vocabulary?.mastery ?? 0}%</Text><Text style={styles.mutedText}>Mastery</Text></View>
         </View>
-
         <View style={styles.filterRow}>
-          {([
-            ['cards', 'Flashcards'],
-            ['quiz', 'Quick quiz'],
-            ['saved', 'My words'],
-          ] as const).map(([mode, label]) => (
+          {(['cards', 'saved'] as const).map(mode => (
             <Pressable key={mode} onPress={() => setVocabularyMode(mode)} style={[styles.filterChip, vocabularyMode === mode && styles.filterChipActive]}>
-              <Text style={[styles.filterText, vocabularyMode === mode && styles.filterTextActive]}>{label}</Text>
+              <Text style={[styles.filterText, vocabularyMode === mode && styles.filterTextActive]}>{mode === 'cards' ? 'AI words' : 'My words'}</Text>
             </Pressable>
           ))}
         </View>
-
-        {vocabularyMode === 'cards' ? (
-          <>
-            <View style={styles.challengePanel}>
-              <Text style={styles.cardKicker}>FLASHCARD {vocabularyIndex + 1} / {VOCABULARY_ITEMS.length}</Text>
-              <Pressable onPress={() => setVocabularyRevealed(value => !value)} style={styles.flashcard}>
-                <Text style={styles.flashcardWord}>{currentWord.word}</Text>
-                <Text style={styles.flashcardType}>{currentWord.type.toUpperCase()}</Text>
-                <Text style={styles.flashcardHint}>{vocabularyRevealed ? currentWord.meaning : 'Tap the card to reveal its meaning'}</Text>
-                {vocabularyRevealed ? (
-                  <View style={styles.wordExample}>
-                    <Text style={styles.wordExampleLabel}>SAY IT IN A SENTENCE</Text>
-                    <Text style={styles.wordExampleText}>{currentWord.example}</Text>
-                  </View>
-                ) : null}
-              </Pressable>
-              <View style={styles.challengeActionRow}>
-                <Pressable style={styles.secondaryAction} onPress={() => Speech.speak(currentWord.word, { language: 'en-US', rate: 0.82 })}>
-                  <Icon name="volume-high-outline" size={18} color={C.gold} />
-                  <Text style={styles.secondaryActionText}>Hear word</Text>
-                </Pressable>
-                <Pressable style={styles.secondaryAction} onPress={() => toggleSaveWord(currentWord.word)}>
-                  <Icon name={savedWords.includes(currentWord.word) ? 'bookmark' : 'bookmark-outline'} size={18} color={C.gold} />
-                  <Text style={styles.secondaryActionText}>{savedWords.includes(currentWord.word) ? 'Saved' : 'Save'}</Text>
-                </Pressable>
-              </View>
-              {vocabularyRevealed ? (
-                <View style={styles.challengeActionRow}>
-                  <AppButton title="Review again" secondary compact onPress={nextVocabularyCard} />
-                  <AppButton title="I know it" compact onPress={nextVocabularyCard} />
-                </View>
-              ) : (
-                <AppButton title="Reveal meaning" icon="eye-outline" onPress={() => setVocabularyRevealed(true)} />
-              )}
+        {current && vocabularyMode === 'cards' ? (
+          <View style={styles.challengePanel}>
+            <Text style={styles.cardKicker}>PERSONAL WORDS · {vocabularyIndex + 1}/{words.length}</Text>
+            <Pressable onPress={() => setVocabularyRevealed(value => !value)} style={styles.flashcard}>
+              <Text style={styles.flashcardWord}>{current.word}</Text>
+              <Text style={styles.flashcardType}>{String(current.partOfSpeech || '').toUpperCase()}</Text>
+              <Text style={styles.flashcardHint}>{vocabularyRevealed ? current.meaning : 'Tap to reveal meaning'}</Text>
+              {vocabularyRevealed ? <View style={styles.wordExample}><Text style={styles.wordExampleLabel}>EXAMPLE</Text><Text style={styles.wordExampleText}>{current.example}</Text></View> : null}
+            </Pressable>
+            <View style={styles.challengeActionRow}>
+              <Pressable style={styles.secondaryAction} onPress={() => Speech.speak(current.word, { language: 'en-US', rate: 0.82 })}><Icon name="volume-high-outline" color={C.gold} size={18} /><Text style={styles.secondaryActionText}>Listen</Text></Pressable>
+              <Pressable style={styles.secondaryAction} onPress={() => toggleSaveWord(current.word)}><Icon name="bookmark-outline" color={C.gold} size={18} /><Text style={styles.secondaryActionText}>{savedWords.includes(current.word) ? 'Saved' : 'Save'}</Text></Pressable>
             </View>
-            <Text style={styles.mutedText}>Memory trick: say the word aloud, cover the meaning, then try to remember it tomorrow.</Text>
-          </>
-        ) : vocabularyMode === 'quiz' ? (
-          <View style={styles.challengePanel}>
-            <Text style={styles.cardKicker}>MEANING SPRINT · {vocabularyIndex + 1}/{VOCABULARY_ITEMS.length}</Text>
-            <Text style={styles.challengeQuestion}>What does “{currentWord.word}” mean?</Text>
-            {currentWord.quizOptions.map((option, index) => {
-              const selected = vocabularyQuizChoice === index;
-              const correct = vocabularyQuizChecked && index === currentWord.quizAnswer;
-              return (
-                <Pressable key={option} onPress={() => !vocabularyQuizChecked && setVocabularyQuizChoice(index)} style={[styles.quizOption, selected && styles.quizOptionSelected, correct && styles.quizOptionCorrect]}>
-                  <Text style={styles.quizOptionText}>{option}</Text>
-                  {correct ? <Icon name="checkmark-circle" color={C.green} size={18} /> : selected && vocabularyQuizChecked ? <Icon name="close-circle" color={C.red} size={18} /> : null}
-                </Pressable>
-              );
-            })}
-            {vocabularyQuizChecked ? <Text style={styles.tipText}>{currentWord.meaning}</Text> : null}
-            {!vocabularyQuizChecked ? (
-              <AppButton title="Check answer" icon="checkmark" onPress={checkVocabularyAnswer} disabled={vocabularyQuizChoice === null} />
-            ) : (
-              <AppButton title={vocabularyIndex === VOCABULARY_ITEMS.length - 1 ? 'Finish quiz' : 'Next word'} icon="arrow-forward" onPress={nextVocabularyQuestion} />
-            )}
-            <Text style={styles.mutedText}>Correct answers this round: {vocabularyQuizScore}</Text>
+            <View style={styles.challengeActionRow}>
+              <AppButton title="Previous" secondary compact onPress={() => { setVocabularyIndex(index => Math.max(0, index - 1)); setVocabularyRevealed(false); }} disabled={vocabularyIndex === 0} />
+              <AppButton title="Next word" compact icon="arrow-forward" onPress={() => { setVocabularyIndex(index => Math.min(words.length - 1, index + 1)); setVocabularyRevealed(false); }} disabled={vocabularyIndex >= words.length - 1} />
+            </View>
           </View>
-        ) : (
+        ) : vocabularyMode === 'saved' ? (
           <View style={styles.challengePanel}>
-            <Text style={styles.cardKicker}>YOUR PERSONAL WORD BANK</Text>
-            {savedVocabulary.length === 0 ? (
-              <Text style={styles.mutedText}>No saved words yet. Open Flashcards and tap Save on a word you want to remember.</Text>
-            ) : savedVocabulary.map(item => (
-              <View key={item.word} style={styles.savedWordRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.wordName}>{item.word}</Text>
-                  <Text style={styles.wordMeaning}>{item.meaning}</Text>
-                  <Text style={styles.wordExampleText}>{item.example}</Text>
-                </View>
-                <Pressable onPress={() => Speech.speak(item.word, { language: 'en-US', rate: 0.82 })} style={styles.wordAction}>
-                  <Icon name="volume-high-outline" size={18} color={C.gold} />
-                </Pressable>
-                <Pressable onPress={() => toggleSaveWord(item.word)} style={styles.wordAction}>
-                  <Icon name="bookmark" size={18} color={C.gold} />
-                </Pressable>
+            <Text style={styles.cardKicker}>YOUR WORD BANK</Text>
+            {saved.length === 0 ? <Text style={styles.mutedText}>Save words from your AI lesson to build your vocabulary bank.</Text> : saved.map((word: any) => (
+              <View key={word.word} style={styles.savedWordRow}>
+                <View style={{ flex: 1 }}><Text style={styles.wordName}>{word.word}</Text><Text style={styles.wordMeaning}>{word.meaning}</Text><Text style={styles.wordExampleText}>{word.example}</Text></View>
+                <Pressable style={styles.wordAction} onPress={() => Speech.speak(word.word, { language: 'en-US' })}><Icon name="volume-high-outline" color={C.gold} size={18} /></Pressable>
+                <Pressable style={styles.wordAction} onPress={() => toggleSaveWord(word.word)}><Icon name="bookmark" color={C.gold} size={18} /></Pressable>
               </View>
             ))}
           </View>
-        )}
+        ) : null}
+        {renderAIActivityPanel('vocabulary', 'Your next word set', 'Emma generates fresh vocabulary and examples based on your level and weak areas.')}
+      </StaggeredScrollView>
+    );
+  };
+
+  const renderListening = () => {
+    const activity = generatedActivities.listening;
+    return (
+      <StaggeredScrollView {...scrollProps} animationKey={screen}>
+        <ScreenHeader title="Listening Lab" onBack={goBack} />
+        <View style={styles.pageIntro}>
+          <Text style={styles.eyebrow}>LISTEN · UNDERSTAND · RESPOND</Text>
+          <Text style={styles.pageHeading}>Train your listening ear</Text>
+          <Text style={styles.mutedText}>Fresh listening passages, written for your current level.</Text>
+        </View>
+        {activity?.script ? (
+          <View style={styles.challengePanel}>
+            <Text style={styles.cardKicker}>AI LISTENING · {skillLevels.listening || learnerLevel}</Text>
+            <Text style={styles.challengeQuestion}>{activity.title}</Text>
+            <Text style={styles.wordExampleText}>{activity.script}</Text>
+            <AppButton title="Play listening audio" icon="play-circle-outline" onPress={() => Speech.speak(activity.script, { language: 'en-US', rate: 0.86 })} />
+            {Array.isArray(activity.questions) ? activity.questions.map((question: any, index: number) => (
+              <View key={index} style={styles.savedWordRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.wordExampleLabel}>QUESTION {index + 1}</Text>
+                  <Text style={styles.wordMeaning}>{question.prompt}</Text>
+                  {question.options.map((option: string, optionIndex: number) => <Text key={optionIndex} style={styles.wordExampleText}>{String.fromCharCode(65 + optionIndex)}. {option}</Text>)}
+                  <Text style={styles.tipText}>Answer: {question.options[question.answerIndex]}</Text>
+                  <Text style={styles.mutedText}>{question.explanation}</Text>
+                </View>
+              </View>
+            )) : null}
+          </View>
+        ) : null}
+        {renderAIActivityPanel('listening', 'A new story for your ears', 'Emma creates a new script and comprehension questions. Text-to-speech currently reads the generated script aloud.')}
       </StaggeredScrollView>
     );
   };
