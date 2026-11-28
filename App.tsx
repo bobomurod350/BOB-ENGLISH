@@ -1206,8 +1206,9 @@ function AppContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...voiceSettings,
-          speakingChallenge: SPEAKING_CHALLENGES[speakingChallengeIndex].prompt,
+          speakingChallenge: generatedActivities.speaking?.mission || SPEAKING_CHALLENGES[speakingChallengeIndex].prompt,
           scenario,
+          learnerId,
         }),
       });
       const tokenData: {
