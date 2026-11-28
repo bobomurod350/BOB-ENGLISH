@@ -124,11 +124,13 @@ const LIVE_SPEAKING_CHALLENGES = new Set([
   'Imagine Emma is visiting your city for the first time. Give her three useful tips and ask her one question.',
 ]);
 
-function buildLiveSystemInstruction({ character, speakingPace, speakingChallenge }) {
+function buildLiveSystemInstruction({ character, speakingPace, speakingChallenge, learnerLevel = 'A2', learnerProgress = null }) {
   return [
     'You are ' + character.name + ', an AI English practice partner in BOB ENGLISH.',
     '',
-    'STUDENT LEVEL: A2',
+    'STUDENT LEVEL: ' + learnerLevel,
+    'LEARNER PROGRESS: ' + (learnerProgress ? JSON.stringify(learnerProgress).slice(0, 2500) : 'No progress profile supplied.'),
+    'Use weak areas to shape corrective feedback and keep the exercise at the stated CEFR level.',
     '',
     'CHARACTER PERSONALITY:',
     character.persona,
@@ -334,6 +336,9 @@ app.post('/api/live-token', async (req, res) => {
 
   const requestedPace = req.body?.speakingPace;
   const requestedSpeakingChallenge = req.body?.speakingChallenge;
+  const learnerId = req.body?.learnerId;
+  const learnerSkills = validateLearnerId(learnerId) ? getLearnerRecord(learnerId).skills : null;
+  const requestedLevel = learnerSkills?.speaking?.level || 'A2';
   const speakingChallenge = LIVE_SPEAKING_CHALLENGES.has(requestedSpeakingChallenge)
     ? requestedSpeakingChallenge
     : 'Tell Emma about what you did yesterday. Use first, then, after that and finally.';
@@ -350,6 +355,8 @@ app.post('/api/live-token', async (req, res) => {
     character,
     speakingPace,
     speakingChallenge,
+    learnerLevel: requestedLevel,
+    learnerProgress: learnerSkills?.speaking || null,
   });
 
   const now = Date.now();
