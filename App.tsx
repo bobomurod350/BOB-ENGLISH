@@ -785,6 +785,26 @@ function AppContent() {
   const [learningApiMessage, setLearningApiMessage] = useState('');
   const [chatInput, setChatInput] = useState('');
   const [recording, setRecording] = useState(false);
+
+  const micPulse = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (!recording) {
+      micPulse.stopAnimation();
+      micPulse.setValue(0);
+      return;
+    }
+    const pulseLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(micPulse, { toValue: 1, duration: 850, useNativeDriver: true }),
+        Animated.timing(micPulse, { toValue: 0, duration: 850, useNativeDriver: true }),
+      ]),
+    );
+    pulseLoop.start();
+    return () => pulseLoop.stop();
+  }, [recording, micPulse]);
+  const micPulseScale = micPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.24] });
+  const micPulseOpacity = micPulse.interpolate({ inputRange: [0, 1], outputRange: [0.38, 0] });
+
   const [chatSending, setChatSending] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState<VoiceStatus>('idle');
   const [voiceTranscript, setVoiceTranscript] = useState('');
@@ -2111,7 +2131,7 @@ function AppContent() {
                     const checked = Boolean(generatedAnswerChecked[skill]);
                     const correct = checked && optionIndex === question.answerIndex;
                     return (
-                      <Pressable key={optionIndex} disabled={checked} onPress={() => setGeneratedAnswerChoices(current => ({ ...current, [skill]: { ...(current[skill] || {}), [index]: optionIndex } }))} style={[styles.quizOption, selected && styles.quizOptionSelected, correct && styles.quizOptionCorrect]}>
+                      <AnimatedPressable key={optionIndex} disabled={checked} pressedScale={0.985} onPress={() => setGeneratedAnswerChoices(current => ({ ...current, [skill]: { ...(current[skill] || {}), [index]: optionIndex } }))} style={[styles.quizOption, selected && styles.quizOptionSelected, correct && styles.quizOptionCorrect]}>
                         <Text style={styles.quizOptionText}>{String.fromCharCode(65 + optionIndex)}. {option}</Text>
                         {correct ? <Icon name="checkmark-circle" color={C.green} size={18} /> : null}
                       </Pressable>
@@ -2170,7 +2190,7 @@ function AppContent() {
         </View>
         <View style={styles.filterRow}>
           {(['cards', 'saved'] as const).map(mode => (
-            <Pressable key={mode} onPress={() => setVocabularyMode(mode)} style={[styles.filterChip, vocabularyMode === mode && styles.filterChipActive]}>
+            <AnimatedPressable key={mode} onPress={() => setVocabularyMode(mode)} pressedScale={0.96} style={[styles.filterChip, vocabularyMode === mode && styles.filterChipActive]}>
               <Text style={[styles.filterText, vocabularyMode === mode && styles.filterTextActive]}>{mode === 'cards' ? 'AI words' : 'My words'}</Text>
             </Pressable>
           ))}
@@ -2178,15 +2198,15 @@ function AppContent() {
         {current && vocabularyMode === 'cards' ? (
           <View style={styles.challengePanel}>
             <Text style={styles.cardKicker}>PERSONAL WORDS · {vocabularyIndex + 1}/{words.length}</Text>
-            <Pressable onPress={() => setVocabularyRevealed(value => !value)} style={styles.flashcard}>
+            <AnimatedPressable onPress={() => setVocabularyRevealed(value => !value)} pressedScale={0.99} style={styles.flashcard}>
               <Text style={styles.flashcardWord}>{current.word}</Text>
               <Text style={styles.flashcardType}>{String(current.partOfSpeech || '').toUpperCase()}</Text>
               <Text style={styles.flashcardHint}>{vocabularyRevealed ? current.meaning : 'Tap to reveal meaning'}</Text>
               {vocabularyRevealed ? <View style={styles.wordExample}><Text style={styles.wordExampleLabel}>EXAMPLE</Text><Text style={styles.wordExampleText}>{current.example}</Text></View> : null}
             </Pressable>
             <View style={styles.challengeActionRow}>
-              <Pressable style={styles.secondaryAction} onPress={() => Speech.speak(current.word, { language: 'en-US', rate: 0.82 })}><Icon name="volume-high-outline" color={C.gold} size={18} /><Text style={styles.secondaryActionText}>Listen</Text></Pressable>
-              <Pressable style={styles.secondaryAction} onPress={() => toggleSaveWord(current.word)}><Icon name="bookmark-outline" color={C.gold} size={18} /><Text style={styles.secondaryActionText}>{savedWords.includes(current.word) ? 'Saved' : 'Save'}</Text></Pressable>
+              <AnimatedPressable accessibilityRole="button" style={styles.secondaryAction} onPress={() => Speech.speak(current.word, { language: 'en-US', rate: 0.82 })}><Icon name="volume-high-outline" color={C.gold} size={18} /><Text style={styles.secondaryActionText}>Listen</Text></Pressable>
+              <AnimatedPressable accessibilityRole="button" style={styles.secondaryAction} onPress={() => toggleSaveWord(current.word)}><Icon name="bookmark-outline" color={C.gold} size={18} /><Text style={styles.secondaryActionText}>{savedWords.includes(current.word) ? 'Saved' : 'Save'}</Text></Pressable>
             </View>
             <View style={styles.challengeActionRow}>
               <AppButton title="Previous" secondary compact onPress={() => { setVocabularyIndex(index => Math.max(0, index - 1)); setVocabularyRevealed(false); }} disabled={vocabularyIndex === 0} />
@@ -2225,7 +2245,22 @@ function AppContent() {
             <Text style={styles.cardKicker}>AI LISTENING · {skillLevels.listening || learnerLevel}</Text>
             <Text style={styles.challengeQuestion}>{activity.title}</Text>
             <Text style={styles.wordExampleText}>{activity.script}</Text>
-            <AppButton title="Play listening audio" icon="play-circle-outline" onPress={() => Speech.speak(activity.script, { language: 'en-US', rate: 0.86 })} />
+            <AppButton title={listeningPlaying ? 'Playing story…' : 'Play listening audio'} icon={listeningPlaying ? 'pause-circle-outline' : 'play-circle-outline'} secondary={listeningPlaying} onPress={() => {
+              if (listeningPlaying) {
+                void Speech.stop();
+                setListeningPlaying(false);
+                return;
+              }
+              void Speech.stop();
+              setListeningPlaying(true);
+              Speech.speak(activity.script, {
+                language: 'en-US',
+                rate: 0.86,
+                onDone: () => setListeningPlaying(false),
+                onStopped: () => setListeningPlaying(false),
+                onError: () => setListeningPlaying(false),
+              });
+            }} />
           </View>
         ) : null}
         {renderAIActivityPanel('listening', 'A new story for your ears', 'Emma creates a new script and interactive comprehension questions. Text-to-speech reads the generated script aloud.')}
@@ -2261,8 +2296,8 @@ function AppContent() {
             <Text style={styles.onlineText}>Online · {scenario} · {chatMode === 'coach' ? 'Gentle corrections' : chatMode === 'challenge' ? 'Challenge mode' : 'Free conversation'}</Text>
           </View>
         </View>
-        <Pressable style={styles.chatHeaderAction} onPress={() => navigate('voice')}><Icon name="call-outline" size={21} color={C.gold} /></Pressable>
-        <Pressable style={styles.chatHeaderAction} onPress={() => Alert.alert('Conversation', 'Your practice conversation is saved in this demo session.')}><Icon name="ellipsis-vertical" size={19} color={C.cream} /></Pressable>
+        <AnimatedIconButton name="call-outline" size={42} iconSize={19} accessibilityLabel="Start voice practice with Emma" onPress={() => navigate('voice')} />
+        <AnimatedIconButton name="ellipsis-vertical" size={42} iconSize={18} tone="cream" accessibilityLabel="Conversation options" onPress={() => Alert.alert('Conversation', 'Your practice conversation is saved in this demo session.')} />
       </View>
 
       <View style={styles.chatModeRow}>
@@ -2271,7 +2306,7 @@ function AppContent() {
           ['conversation', 'Free talk'],
           ['challenge', 'Challenge'],
         ] as const).map(([mode, label]) => (
-          <Pressable key={mode} onPress={() => setChatMode(mode)} style={[styles.chatModeChip, chatMode === mode && styles.chatModeChipActive]}>
+          <AnimatedPressable key={mode} onPress={() => setChatMode(mode)} pressedScale={0.95} style={[styles.chatModeChip, chatMode === mode && styles.chatModeChipActive]}>
             <Text style={[styles.chatModeText, chatMode === mode && styles.chatModeTextActive]}>{label}</Text>
           </Pressable>
         ))}
@@ -2303,16 +2338,16 @@ function AppContent() {
 
       <View style={styles.quickReplyRow}>
         {['Yes, I do.', 'Not really.', 'What about you?'].map(item => (
-          <Pressable key={item} onPress={() => setChatInput(item)} style={styles.quickReply}>
+          <AnimatedPressable key={item} onPress={() => setChatInput(item)} pressedScale={0.95} style={styles.quickReply}>
             <Text style={styles.quickReplyText}>{item}</Text>
           </Pressable>
         ))}
       </View>
 
       <View style={styles.composerWrap}>
-        <Pressable style={styles.composerAdd} onPress={() => navigate('vocabulary')}><Icon name="add" size={23} color={C.gold} /></Pressable>
+        <AnimatedPressable accessibilityRole="button" accessibilityLabel="Open vocabulary" style={styles.composerAdd} onPress={() => navigate('vocabulary')}><Icon name="add" size={23} color={C.gold} /></Pressable>
         <TextInput value={chatInput} onChangeText={setChatInput} placeholder="Type in English..." placeholderTextColor={C.dim} style={styles.composerInput} returnKeyType="send" onSubmitEditing={sendMessage} />
-        <Pressable style={styles.composerMic} onPress={() => navigate('voice')}><Icon name="mic" size={21} color="#2B180D" /></Pressable>
+        <AnimatedPressable accessibilityRole="button" accessibilityLabel="Open speaking practice" style={styles.composerMic} onPress={() => navigate('voice')}><Icon name="mic" size={21} color="#2B180D" /></Pressable>
         <Pressable
           style={[styles.sendButton, chatSending && { opacity: 0.55 }]}
           onPress={sendMessage}
