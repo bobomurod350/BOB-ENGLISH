@@ -98,7 +98,7 @@ const C = {
 };
 
 const EMMA = require('./assets/emma-cafe.jpg');
-const API_BASE_URL = 'http://10.125.74.127:8787';
+const API_BASE_URL = (process.env.EXPO_PUBLIC_API_URL || '').replace(/\\/$/, '');
 const LIVE_SAMPLE_RATE = 16000;
 const LIVE_OUTPUT_SAMPLE_RATE = 24000;
 
@@ -747,7 +747,19 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState<Tab>('home');
   const screenRef = useRef<Screen>('welcome');
   const historyRef = useRef<Screen[]>([]);
-
+  const [learnerId] = useState(() => {
+    const generated = 'learner_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+    return generated.slice(0, 72);
+  });
+  const [learnerLevel, setLearnerLevel] = useState('A2');
+  const [skillLevels, setSkillLevels] = useState<Record<string, string>>({
+    chat: 'A2', scenarios: 'A2', vocabulary: 'A2', grammar: 'A2', listening: 'A2', speaking: 'A2',
+  });
+  const [skillProgress, setSkillProgress] = useState<Record<string, { level: string; mastery: number; attempts: number; accuracy: number; weakTopics: string[] }>>({});
+  const [recentTopics, setRecentTopics] = useState<string[]>([]);
+  const [generatedActivities, setGeneratedActivities] = useState<Record<string, any>>({});
+  const [generatingSkill, setGeneratingSkill] = useState<string | null>(null);
+  const [learningApiMessage, setLearningApiMessage] = useState('');
   const [chatInput, setChatInput] = useState('');
   const [recording, setRecording] = useState(false);
   const [chatSending, setChatSending] = useState(false);
@@ -755,12 +767,8 @@ function AppContent() {
   const [voiceTranscript, setVoiceTranscript] = useState('');
   const [scenario, setScenario] = useState('Café Conversation');
   const [voiceSettingsVisible, setVoiceSettingsVisible] = useState(false);
-  const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>({
-    speakingPace: 'natural',
-  });
-  const [voiceSettingsDraft, setVoiceSettingsDraft] = useState<VoiceSettings>({
-    speakingPace: 'natural',
-  });
+  const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>({ speakingPace: 'natural' });
+  const [voiceSettingsDraft, setVoiceSettingsDraft] = useState<VoiceSettings>({ speakingPace: 'natural' });
   const selectedCharacter = EMMA_CHARACTER;
 
   const voiceSocketRef = useRef<WebSocket | null>(null);
@@ -781,10 +789,7 @@ function AppContent() {
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     { id: 1, from: 'emma', text: "Hi! I'm Emma. I work at this café. I really love coffee and meeting new people. So, what do you usually drink at a café?", time: '9:41' },
-    { id: 2, from: 'you', text: 'I usually drink coffee with milk.', time: '9:42' },
-    { id: 3, from: 'emma', text: "That sounds lovely! I usually make a cappuccino in the morning. Do you prefer hot coffee or iced coffee?", time: '9:42' },
   ]);
-
   const [savedWords, setSavedWords] = useState<string[]>(['usually', 'prefer']);
   const [learnFilter, setLearnFilter] = useState<'Grammar' | 'Listening' | 'Reading'>('Grammar');
   const [chatMode, setChatMode] = useState<'coach' | 'conversation' | 'challenge'>('coach');
@@ -805,7 +810,6 @@ function AppContent() {
   const [listeningFinished, setListeningFinished] = useState(false);
   const [listeningPlaying, setListeningPlaying] = useState(false);
   const [speakingChallengeIndex, setSpeakingChallengeIndex] = useState(0);
-
   const navigate = useCallback((next: Screen) => {
     const current = screenRef.current;
     const isDestinationMainTab = (['home', 'practice', 'learn', 'progress', 'profile'] as const).includes(next as Tab);
