@@ -471,9 +471,10 @@ function validateActivity(skill, value) {
 }
 app.post('/api/learning/generate', async (req, res) => {
   if (!requireGemini(res)) return;
-  const { skill, studentLevel, progress: rawProgress, recentTopics = [], learnerGoal } = req.body ?? {};
+  const { skill, studentLevel, progress: rawProgress, recentTopics = [], learnerGoal, learnerId } = req.body ?? {};
   if (!Object.hasOwn(SKILL_SCHEMAS, skill)) return res.status(400).json({ error: 'Unsupported learning skill.' });
-  const progress = safeProgress(rawProgress);
+  const savedProgress = validateLearnerId(learnerId) ? getLearnerRecord(learnerId).skills : null;
+  const progress = safeProgress(rawProgress || savedProgress);
   const level = CEFR_LEVELS.includes(studentLevel) ? studentLevel : progress[skill].level;
   const topics = Array.isArray(recentTopics) ? recentTopics.filter(x => typeof x === 'string').slice(0, 12) : [];
   const prompt = [
