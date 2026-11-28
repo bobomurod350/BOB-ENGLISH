@@ -479,6 +479,96 @@ app.post('/api/learning/generate', async (req, res) => {
     return res.status(502).json({ error: 'Could not generate a valid learning activity. Please try again.' });
   }
 });
+
+const CHAT_LEVELS = ['Pre-A1', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+const CHAT_PROGRESS_SCHEMA = {
+  chat: { level: 'A2', mastery: 0, attempts: 0, accuracy: 0, weakTopics: [] },
+  scenarios: { level: 'A2', mastery: 0, attempts: 0, accuracy: 0, weakTopics: [] },
+  vocabulary: { level: 'A2', mastery: 0, attempts: 0, accuracy: 0, weakTopics: [] },
+  grammar: { level: 'A2', mastery: 0, attempts: 0, accuracy: 0, weakTopics: [] },
+  listening: { level: 'A2', mastery: 0, attempts: 0, accuracy: 0, weakTopics: [] },
+  speaking: { level: 'A2', mastery: 0, attempts: 0, accuracy: 0, weakTopics: [] },
+};
+const learnerRecords = new Map();
+
+function initialLearnerRecord(learnerId) {
+  return {
+    learnerId,
+    skills: structuredClone(CHAT_PROGRESS_SCHEMA),
+    savedWords: [],
+    history: [],
+    updatedAt: new Date().toISOString(),
+  };
+}
+function getLearnerRecord(learnerId) {
+  if (!learnerRecords.has(learnerId)) learnerRecords.set(learnerId, initialLearnerRecord(learnerId));
+  return learnerRecords.get(learnerId);
+}
+function validateLearnerId(learnerId) {
+  return typeof learnerId === 'string' && /^[a-zA-Z0-9_-]{8,80}$/.test(learnerId);
+}
+
+// Learning attempt persistence is currently process-local. This route makes
+// the contract explicit; production durability needs an authenticated database.
+app.get('/api/learning/progress/:learnerId', (req, res) => {
+  if (!validateLearnerId(req.params.learnerId)) return res.status(400).json({ error: 'Invalid learner ID.' });
+  return res.json({ success: true, progress: getLearnerRecord(req.params.learnerId) });
+});
+
+app.post('/api/learning/attempt', (req, res) => {
+  const { learnerId, skill, topic, correct, total, level } = req.body ?? {};
+  if (!validateLearnerId(learnerId)) return res.status(400).json({ error: 'Invalid learner ID.' });
+  if (!Object.hasOwn(CHAT_PROGRESS_SCHEMA, skill)) return res.status(400).json({ error: 'Unknown learning skill.' });
+  const totalCount = Number(total);
+  const correctCount = Number(correct);
+  if (!Number.isInteger(totalCount) || totalCount < 1 || totalCount > 100 ||
+      !Number.isInteger(correctCount) || correctCount < 0 || correctCount > totalCount) {
+    return res.status(400).json({ error: 'Invalid attempt score.' });
+  }
+  const record = getLearnerRecord(learnerId);
+  const previous = record.skills[skill];
+  const accuracy = Math.round((correctCount / totalCount) * 100);
+  const attempts = previous.attempts + 1;
+  const rollingAccuracy = Math.round(((previous.accuracy * previous.attempts) + accuracy) / attempts);
+  const mastery = Math.round(previous.mastery * 0.65 + accuracy * 0.35);
+  const weakTopics = accuracy < 70 && typeof topic === 'string'
+    ? Array.from(new Set([...previous.weakTopics, topic.slice(0, 80)])).slice(-12)
+    : previous.weakTopics.filter(item => item !== topic);
+  let nextLevel = CHAT_LEVELS.includes(level) ? level : previous.level;
+  const levelIndex = CHAT_LEVELS.indexOf(nextLevel);
+  if (attempts >= 8 && rollingAccuracy >= 85 && mastery >= 80 && levelIndex >= 0 && levelIndex < CHAT_LEVELS.length - 1) {
+    nextLevel = CHAT_LEVELS[levelIndex + 1];
+  }
+  record.skills[skill] = { level: nextLevel, mastery, attempts, accuracy: rollingAccuracy, weakTopics };
+  record.history.unshift({
+    id: crypto.randomUUID(),
+    skill,
+    topic: typeof topic === 'string' ? topic.slice(0, 80) : skill,
+    level: CHAT_LEVELS.includes(level) ? level : previous.level,
+    correct: correctCount,
+    total: totalCount,
+    accuracy,
+    createdAt: new Date().toISOString(),
+  });
+  record.history = record.history.slice(0, 100);
+  record.updatedAt = new Date().toISOString();
+  return res.json({ success: true, progress: record });
+});
+
+app.post('/api/learning/saved-words', (req, res) => {
+  const { learnerId, word, saved = true } = req.body ?? {};
+  if (!validateLearnerId(learnerId) || typeof word !== 'string' || word.trim().length < 1 || word.length > 80) {
+    return res.status(400).json({ error: 'Invalid learner or word.' });
+  }
+  const record = getLearnerRecord(learnerId);
+  const normalized = word.trim();
+  record.savedWords = saved
+    ? Array.from(new Set([...record.savedWords, normalized])).slice(-500)
+    : record.savedWords.filter(item => item !== normalized);
+  record.updatedAt = new Date().toISOString();
+  return res.json({ success: true, savedWords: record.savedWords });
+});
+
 // Not found.
 app.use((_req, res) => {
   res.status(404).json({
