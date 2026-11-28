@@ -783,6 +783,21 @@ function AppContent() {
   const [generatedAnswerChecked, setGeneratedAnswerChecked] = useState<Record<string, boolean>>({});
   const [generatingSkill, setGeneratingSkill] = useState<string | null>(null);
   const [learningApiMessage, setLearningApiMessage] = useState('');
+  const loadSavedVocabulary = useCallback(async () => {
+    if (!API_BASE_URL) return;
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/learning/progress/${learnerId}`);
+      const data = await response.json();
+      if (response.ok && data.success) setSavedWords(data.progress?.savedWords || []);
+    } catch (error) {
+      console.warn('Could not restore vocabulary:', error);
+    }
+  }, [learnerId]);
+
+  useEffect(() => {
+    void loadSavedVocabulary();
+  }, [loadSavedVocabulary]);
+
   const [chatInput, setChatInput] = useState('');
   const [recording, setRecording] = useState(false);
   const [chatSending, setChatSending] = useState(false);
