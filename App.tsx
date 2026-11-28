@@ -1537,7 +1537,15 @@ function AppContent() {
   }, []);
 
   const toggleSaveWord = (word: string) => {
-    setSavedWords(words => words.includes(word) ? words.filter(item => item !== word) : [...words, word]);
+    const shouldSave = !savedWords.includes(word);
+    setSavedWords(current => shouldSave ? [...current, word] : current.filter(item => item !== word));
+    if (API_BASE_URL) {
+      void fetch(`${API_BASE_URL}/api/learning/saved-words`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ learnerId, word, saved: shouldSave }),
+      }).catch(error => console.warn('Saved word sync failed:', error));
+    }
   };
 
   const openListening = () => {
