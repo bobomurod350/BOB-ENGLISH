@@ -854,11 +854,7 @@ function AppContent() {
   }, []);
 
   const loadLearningProgress = useCallback(async () => {
-    if (!learnerReady || !learnerId) return;
-    if (!API_BASE_URL) {
-      setLearningApiMessage('Add EXPO_PUBLIC_API_URL to connect to the live learning service.');
-      return;
-    }
+    if (!learnerReady || !learnerId || !API_BASE_URL) return;
     try {
       const response = await fetch(`${API_BASE_URL}/api/learning/progress/${learnerId}`);
       const data = await response.json();
