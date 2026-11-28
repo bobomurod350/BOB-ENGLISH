@@ -744,6 +744,50 @@ function WelcomeEntrance({
   );
 }
 
+function LiveWaveBar({ active, index, color }: { active: boolean; index: number; color: string }) {
+  const level = useRef(new Animated.Value(0.18)).current;
+
+  useEffect(() => {
+    if (!active) {
+      level.stopAnimation();
+      level.setValue(0.18);
+      return;
+    }
+
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(level, {
+          toValue: 1,
+          duration: 250 + (index % 5) * 55,
+          useNativeDriver: true,
+        }),
+        Animated.timing(level, {
+          toValue: 0.16 + (index % 3) * 0.05,
+          duration: 300 + (index % 4) * 60,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [active, index, level]);
+
+  const scaleY = level.interpolate({ inputRange: [0, 1], outputRange: [0.2, 1] });
+  return (
+    <Animated.View
+      style={[
+        styles.waveBar,
+        {
+          height: 34,
+          backgroundColor: color,
+          opacity: active ? 1 : 0.42,
+          transform: [{ scaleY }],
+        },
+      ]}
+    />
+  );
+}
+
 function AppContent() {
   const insets = useSafeAreaInsets();
   const blurTargetRef = useRef<React.ComponentRef<typeof View> | null>(null);
@@ -2415,7 +2459,12 @@ function AppContent() {
 
         <View style={styles.waveRow}>
           {Array.from({ length: 23 }).map((_, index) => (
-            <View key={index} style={[styles.waveBar, { height: 10 + ((index * 17) % 33), opacity: recording ? 1 : 0.5, backgroundColor: selectedCharacter.accent }]} />
+            <LiveWaveBar
+              key={index}
+              index={index}
+              active={recording || voiceStatus === 'speaking'}
+              color={selectedCharacter.accent}
+            />
           ))}
         </View>
 
