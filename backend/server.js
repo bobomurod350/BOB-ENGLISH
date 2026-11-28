@@ -233,7 +233,7 @@ app.get('/api/characters', (_req, res) => {
 app.post('/api/chat', async (req, res) => {
   if (!requireGemini(res)) return;
 
-  const { message, history = [], studentLevel = 'A2', scenario = 'Free Conversation', practiceMode = 'coach', learnerId, learnerProgress: clientProgress } = req.body ?? {};
+  const { message, history = [], studentLevel = 'A2', scenario = 'Free Conversation', practiceMode = 'coach', learnerId, learnerProgress: clientProgress, scenarioContext } = req.body ?? {};
 
   if (
     typeof message !== 'string' ||
@@ -289,6 +289,15 @@ app.post('/api/chat', async (req, res) => {
     .join('\n\n');
 
   try {
+    const safeContext = scenarioContext && typeof scenarioContext === 'object'
+      ? [
+          'ROLEPLAY CONTEXT: ' + String(scenarioContext.context || '').slice(0, 400),
+          'ROLE: ' + String(scenarioContext.role || '').slice(0, 120),
+          'GOAL: ' + String(scenarioContext.goal || '').slice(0, 300),
+          'OPENING LINE: ' + String(scenarioContext.openingLine || '').slice(0, 300),
+          'USEFUL PHRASES: ' + (Array.isArray(scenarioContext.usefulPhrases) ? scenarioContext.usefulPhrases.filter(x => typeof x === 'string').slice(0, 8).join('; ').slice(0, 500) : ''),
+        ].join('\n')
+      : '';
     const interaction = await ai.interactions.create({
       model: CHAT_MODEL,
       system_instruction: EMMA_PROMPT(
@@ -296,7 +305,7 @@ app.post('/api/chat', async (req, res) => {
         safeScenario,
         safePracticeMode,
         validateLearnerId(learnerId) ? (getLearnerRecord(learnerId).skills || clientProgress) : clientProgress,
-      ),
+      ) + (safeContext ? '\n\n' + safeContext + '\nStay in this generated role-play context unless the learner asks to change it.' : ''),
       input:
         'Continue this English learning conversation. ' +
         "Answer the student's latest message naturally.\n\n" +
