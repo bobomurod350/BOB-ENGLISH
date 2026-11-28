@@ -2243,7 +2243,7 @@ function AppContent() {
         </View>
       </ImageBackground>
       {renderAIActivityPanel('scenarios', 'Your next real-life scene', 'Generate a role, goal, opening line and useful phrases. Then practise it in Emma Chat.')}
-      <AppButton title="Start a conversation with Emma" icon="chatbubble-ellipses-outline" onPress={() => openChat('Free Conversation')} />
+      <AppButton title="Start this role-play with Emma" icon="chatbubble-ellipses-outline" disabled={!generatedActivities.scenarios} onPress={() => openChat('Free Conversation')} />
     </StaggeredScrollView>
   );
 
