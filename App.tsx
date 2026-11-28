@@ -897,6 +897,7 @@ function AppContent() {
           studentLevel: skillLevels[skill] || learnerLevel,
           progress: skillProgress,
           recentTopics,
+          learnerId,
           learnerGoal: goal || 'Build confident everyday English.',
         }),
       });
