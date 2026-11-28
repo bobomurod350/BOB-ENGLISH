@@ -42,3 +42,8 @@ npx expo-doctor
 - Accent: #F4B86E
 - Secondary accent: #D98E42
 - Success: #7AD09B
+
+
+## AI learning platform upgrade
+
+The `feature/ai-learning-platform` branch contains the first adaptive AI learning integration for Emma's Premium Café direction. See [AI_UPGRADE_STATUS.md](./AI_UPGRADE_STATUS.md) for implemented functionality, known limitations and validation instructions. The progress API currently uses process memory and is not durable cloud storage. A deployed HTTPS backend URL is required for mobile API access.
