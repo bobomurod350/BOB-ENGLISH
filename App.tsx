@@ -779,6 +779,8 @@ function AppContent() {
   const [skillProgress, setSkillProgress] = useState<Record<string, { level: string; mastery: number; attempts: number; accuracy: number; weakTopics: string[] }>>({});
   const [recentTopics, setRecentTopics] = useState<string[]>([]);
   const [generatedActivities, setGeneratedActivities] = useState<Record<string, any>>({});
+  const [generatedAnswerChoices, setGeneratedAnswerChoices] = useState<Record<string, Record<number, number>>>({});
+  const [generatedAnswerChecked, setGeneratedAnswerChecked] = useState<Record<string, boolean>>({});
   const [generatingSkill, setGeneratingSkill] = useState<string | null>(null);
   const [learningApiMessage, setLearningApiMessage] = useState('');
   const [chatInput, setChatInput] = useState('');
