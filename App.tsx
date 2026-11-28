@@ -2134,7 +2134,7 @@ function AppContent() {
                       <AnimatedPressable key={optionIndex} disabled={checked} pressedScale={0.985} onPress={() => setGeneratedAnswerChoices(current => ({ ...current, [skill]: { ...(current[skill] || {}), [index]: optionIndex } }))} style={[styles.quizOption, selected && styles.quizOptionSelected, correct && styles.quizOptionCorrect]}>
                         <Text style={styles.quizOptionText}>{String.fromCharCode(65 + optionIndex)}. {option}</Text>
                         {correct ? <Icon name="checkmark-circle" color={C.green} size={18} /> : null}
-                      </Pressable>
+                      </AnimatedPressable>
                     );
                   }) : null}
                   {generatedAnswerChecked[skill] ? <Text style={styles.tipText}>{generatedAnswerChoices[skill]?.[index] === question.answerIndex ? 'Correct.' : 'Not quite.'} {question.explanation}</Text> : null}
@@ -2192,7 +2192,7 @@ function AppContent() {
           {(['cards', 'saved'] as const).map(mode => (
             <AnimatedPressable key={mode} onPress={() => setVocabularyMode(mode)} pressedScale={0.96} style={[styles.filterChip, vocabularyMode === mode && styles.filterChipActive]}>
               <Text style={[styles.filterText, vocabularyMode === mode && styles.filterTextActive]}>{mode === 'cards' ? 'AI words' : 'My words'}</Text>
-            </Pressable>
+            </AnimatedPressable>
           ))}
         </View>
         {current && vocabularyMode === 'cards' ? (
@@ -2203,7 +2203,7 @@ function AppContent() {
               <Text style={styles.flashcardType}>{String(current.partOfSpeech || '').toUpperCase()}</Text>
               <Text style={styles.flashcardHint}>{vocabularyRevealed ? current.meaning : 'Tap to reveal meaning'}</Text>
               {vocabularyRevealed ? <View style={styles.wordExample}><Text style={styles.wordExampleLabel}>EXAMPLE</Text><Text style={styles.wordExampleText}>{current.example}</Text></View> : null}
-            </Pressable>
+            </AnimatedPressable>
             <View style={styles.challengeActionRow}>
               <AnimatedPressable accessibilityRole="button" style={styles.secondaryAction} onPress={() => Speech.speak(current.word, { language: 'en-US', rate: 0.82 })}><Icon name="volume-high-outline" color={C.gold} size={18} /><Text style={styles.secondaryActionText}>Listen</Text></Pressable>
               <AnimatedPressable accessibilityRole="button" style={styles.secondaryAction} onPress={() => toggleSaveWord(current.word)}><Icon name="bookmark-outline" color={C.gold} size={18} /><Text style={styles.secondaryActionText}>{savedWords.includes(current.word) ? 'Saved' : 'Save'}</Text></Pressable>
@@ -2308,7 +2308,7 @@ function AppContent() {
         ] as const).map(([mode, label]) => (
           <AnimatedPressable key={mode} onPress={() => setChatMode(mode)} pressedScale={0.95} style={[styles.chatModeChip, chatMode === mode && styles.chatModeChipActive]}>
             <Text style={[styles.chatModeText, chatMode === mode && styles.chatModeTextActive]}>{label}</Text>
-          </Pressable>
+          </AnimatedPressable>
         ))}
       </View>
 
@@ -2345,9 +2345,9 @@ function AppContent() {
       </View>
 
       <View style={styles.composerWrap}>
-        <AnimatedPressable accessibilityRole="button" accessibilityLabel="Open vocabulary" style={styles.composerAdd} onPress={() => navigate('vocabulary')}><Icon name="add" size={23} color={C.gold} /></Pressable>
+        <AnimatedPressable accessibilityRole="button" accessibilityLabel="Open vocabulary" style={styles.composerAdd} onPress={() => navigate('vocabulary')}><Icon name="add" size={23} color={C.gold} /></AnimatedPressable>
         <TextInput value={chatInput} onChangeText={setChatInput} placeholder="Type in English..." placeholderTextColor={C.dim} style={styles.composerInput} returnKeyType="send" onSubmitEditing={sendMessage} />
-        <AnimatedPressable accessibilityRole="button" accessibilityLabel="Open speaking practice" style={styles.composerMic} onPress={() => navigate('voice')}><Icon name="mic" size={21} color="#2B180D" /></Pressable>
+        <AnimatedPressable accessibilityRole="button" accessibilityLabel="Open speaking practice" style={styles.composerMic} onPress={() => navigate('voice')}><Icon name="mic" size={21} color="#2B180D" /></AnimatedPressable>
         <Pressable
           style={[styles.sendButton, chatSending && { opacity: 0.55 }]}
           onPress={sendMessage}
@@ -2377,10 +2377,10 @@ function AppContent() {
         <Text style={[styles.cardKicker, { color: selectedCharacter.accent }]}>{scenario.toUpperCase()}</Text>
         <Text style={styles.voiceStep}>Speak naturally with Emma</Text>
         <Text style={styles.voiceHint}>{generatedActivities.speaking?.mission || SPEAKING_CHALLENGES[speakingChallengeIndex].prompt}</Text>
-        <Pressable onPress={() => setSpeakingChallengeIndex(index => (index + 1) % SPEAKING_CHALLENGES.length)} style={styles.speakingMissionButton}>
+        <AnimatedPressable onPress={() => setSpeakingChallengeIndex(index => (index + 1) % SPEAKING_CHALLENGES.length)} pressedScale={0.96} style={styles.speakingMissionButton} accessibilityRole="button">
           <Icon name="shuffle-outline" size={15} color={selectedCharacter.accent} />
           <Text style={styles.speakingMissionText}>Change speaking mission</Text>
-        </Pressable>
+        </AnimatedPressable>
         <ProgressBar progress={60} color={selectedCharacter.accent} />
         <View style={{ marginTop: 12 }}>
           <AppButton title={generatingSkill === 'speaking' ? 'Emma is preparing…' : 'Generate a new AI speaking mission'} icon="sparkles" secondary disabled={generatingSkill === 'speaking'} onPress={() => { void generateLearningActivity('speaking'); }} />
@@ -2434,39 +2434,53 @@ function AppContent() {
       </View>
 
       <View style={styles.voiceControls}>
-        <Pressable
-          style={[styles.voiceSmallButton, { borderColor: selectedCharacter.accent }]}
-          onPress={() => navigate('chat')}
-          accessibilityRole="button"
+        <AnimatedIconButton
+          name="keypad-outline"
+          iconSize={22}
+          size={48}
+          tone="cream"
           accessibilityLabel="Return to text chat"
-        >
-          <Icon name="keypad-outline" size={22} color={C.cream} />
-        </Pressable>
+          onPress={() => navigate('chat')}
+        />
 
-        <Pressable
-          onPress={recording ? stopVoice : startVoice}
-          disabled={voiceStatus === 'connecting'}
-          style={[
-            styles.voiceMicButton,
-            { backgroundColor: recording ? C.green : selectedCharacter.accent, borderColor: selectedCharacter.surface, shadowColor: selectedCharacter.accent },
-            voiceStatus === 'connecting' && { opacity: 0.65 },
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel={recording ? 'End voice conversation' : `Start ${selectedCharacter.name} voice conversation`}
-          accessibilityState={{ disabled: voiceStatus === 'connecting' }}
-        >
-          <Icon name={recording ? 'stop' : 'mic'} size={34} color="#2B180D" />
-        </Pressable>
+        <View style={styles.liveMicControl}>
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.liveMicHalo,
+              {
+                borderColor: recording ? C.green : selectedCharacter.accent,
+                opacity: micPulseOpacity,
+                transform: [{ scale: micPulseScale }],
+              },
+            ]}
+          />
+          <AnimatedPressable
+            onPress={recording ? stopVoice : startVoice}
+            disabled={voiceStatus === 'connecting'}
+            pressedScale={0.91}
+            pressedOpacity={0.8}
+            style={[
+              styles.voiceMicButton,
+              { backgroundColor: recording ? C.green : selectedCharacter.accent, borderColor: selectedCharacter.surface, shadowColor: selectedCharacter.accent },
+              voiceStatus === 'connecting' && { opacity: 0.65 },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={recording ? 'End voice conversation' : `Start ${selectedCharacter.name} voice conversation`}
+            accessibilityState={{ disabled: voiceStatus === 'connecting', selected: recording }}
+          >
+            <Icon name={recording ? 'stop' : 'mic'} size={34} color="#2B180D" />
+          </AnimatedPressable>
+        </View>
 
-        <Pressable
-          style={[styles.voiceSmallButton, { borderColor: selectedCharacter.accent }]}
-          onPress={openVoiceSettings}
-          accessibilityRole="button"
+        <AnimatedIconButton
+          name="options-outline"
+          iconSize={22}
+          size={48}
+          tone="cream"
           accessibilityLabel="Open Emma voice settings"
-          accessibilityHint="Change Emma voice speed."
-        >
-          <Icon name="options-outline" size={22} color={C.cream} />
-        </Pressable>
+          onPress={openVoiceSettings}
+        />
       </View>
 
       <View style={styles.demoNotice}>
@@ -2693,7 +2707,8 @@ const styles = StyleSheet.create({
   seeAll: { color: C.gold, fontSize: 12, fontWeight: '700' },
 
   featureGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 18 },
-  featureTile: { width: '31.5%', backgroundColor: C.card, borderWidth: 1, borderColor: '#4C3222', borderRadius: 16, minHeight: 111, paddingTop: 13, paddingBottom: 12, paddingHorizontal: 7, alignItems: 'center', marginBottom: 9 },
+  featureTile: { width: '31.5%', backgroundColor: C.card, borderWidth: 1, borderColor: '#4C3222', borderRadius: 16, minHeight: 111, paddingTop: 13, paddingBottom: 12, paddingHorizontal: 7, alignItems: 'center', marginBottom: 9, position: 'relative', overflow: 'hidden' },
+  featureTileArrow: { position: 'absolute', top: 7, right: 7, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(244,184,110,0.09)', alignItems: 'center', justifyContent: 'center' },
   featureIcon: { width: 39, height: 39, borderRadius: 13, backgroundColor: '#422A1A', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
   featureTitle: { color: C.cream, fontSize: 12, fontWeight: '800', textAlign: 'center' },
   featureSubtitle: { color: C.muted, fontSize: 9, marginTop: 3, textAlign: 'center' },
@@ -2940,6 +2955,8 @@ const styles = StyleSheet.create({
   voiceTranscript: { color: C.gold, fontSize: 11, lineHeight: 16, textAlign: 'center', marginTop: 12, paddingHorizontal: 15 },
   voiceControls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-evenly', paddingBottom: 27 },
   voiceSmallButton: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#3A271A', borderWidth: 1, borderColor: C.line, alignItems: 'center', justifyContent: 'center' },
+  liveMicControl: { width: 92, height: 92, alignItems: 'center', justifyContent: 'center' },
+  liveMicHalo: { position: 'absolute', width: 82, height: 82, borderRadius: 41, borderWidth: 2 },
   voiceMicButton: { width: 82, height: 82, borderRadius: 41, backgroundColor: C.gold, borderWidth: 6, borderColor: '#5A3C25', alignItems: 'center', justifyContent: 'center', shadowColor: C.gold, shadowOpacity: 0.25, shadowRadius: 16, elevation: 8 },
   voiceMicButtonActive: { backgroundColor: C.green, borderColor: '#284A35' },
 
