@@ -1044,6 +1044,14 @@ function AppContent() {
           practiceMode: chatMode,
           learnerId,
           learnerProgress: skillProgress,
+          scenarioContext: scenario === 'Free Conversation' ? null : {
+            title: generatedActivities.scenarios?.title,
+            context: generatedActivities.scenarios?.context,
+            role: generatedActivities.scenarios?.role,
+            goal: generatedActivities.scenarios?.goal,
+            openingLine: generatedActivities.scenarios?.openingLine,
+            usefulPhrases: generatedActivities.scenarios?.usefulPhrases,
+          },
         }),
       });
 
