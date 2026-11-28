@@ -47,3 +47,8 @@ npx expo-doctor
 ## AI learning platform upgrade
 
 The `feature/ai-learning-platform` branch contains the first adaptive AI learning integration for Emma's Premium Café direction. See [AI_UPGRADE_STATUS.md](./AI_UPGRADE_STATUS.md) for implemented functionality, known limitations and validation instructions. The progress API currently uses process memory and is not durable cloud storage. A deployed HTTPS backend URL is required for mobile API access.
+
+
+## Emma's Premium Café — six-screen design
+
+The editable six-screen Figma design and reusable Café UI tokens/components are available here: [BOB ENGLISH — Emma Premium Café](https://www.figma.com/design/iQI1665PnXTCqzIQ6bqRSG). The Expo app uses its existing animated interaction primitives for buttons, cards, navigation, quizzes and the live speaking microphone state. See [AI_UPGRADE_STATUS.md](./AI_UPGRADE_STATUS.md) for implementation boundaries and checks still required.
