@@ -24,6 +24,9 @@ import { BlurView, BlurTargetView } from 'expo-blur';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { AudioContext, AudioManager, AudioRecorder } from 'react-native-audio-api';
 import * as Speech from 'expo-speech';
+import AnimatedPressable from './src/components/AnimatedPressable';
+import AnimatedIconButton from './src/components/AnimatedIconButton';
+import AnimatedTabItem from './src/components/AnimatedTabItem';
 
 type IconName = string;
 type Screen = 'welcome' | 'home' | 'practice' | 'learn' | 'progress' | 'profile' | 'chat' | 'voice' | 'vocabulary' | 'grammar' | 'correction' | 'lesson' | 'listening';
@@ -311,16 +314,23 @@ function AppButton({ title, onPress, icon, secondary = false, compact = false, d
   title: string; onPress: () => void; icon?: IconName; secondary?: boolean; compact?: boolean; disabled?: boolean;
 }) {
   return (
-    <Pressable disabled={disabled} onPress={onPress} style={({ pressed }) => [
-      styles.button,
-      secondary && styles.buttonSecondary,
-      compact && styles.buttonCompact,
-      disabled && { opacity: 0.45 },
-      pressed && styles.pressed,
-    ]}>
+    <AnimatedPressable
+      disabled={disabled}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      pressedScale={compact ? 0.94 : 0.975}
+      pressedOpacity={0.84}
+      style={[
+        styles.button,
+        secondary && styles.buttonSecondary,
+        compact && styles.buttonCompact,
+        disabled && { opacity: 0.45 },
+      ]}
+    >
       <Text style={[styles.buttonText, secondary && styles.buttonTextSecondary, compact && styles.buttonTextCompact]}>{title}</Text>
       {icon ? <Icon name={icon} size={18} color={secondary ? C.gold : '#2B180D'} /> : null}
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -471,7 +481,14 @@ function AnimatedWeekBar({
 function ScreenHeader({ title, onBack, right }: { title: string; onBack: () => void; right?: React.ReactNode }) {
   return (
     <View style={styles.screenHeader}>
-      <Pressable onPress={onBack} style={styles.backButton}><Icon name="chevron-back" size={22} /></Pressable>
+      <AnimatedIconButton
+        name="chevron-back"
+        size={44}
+        iconSize={21}
+        accessibilityLabel="Go back"
+        onPress={onBack}
+        backgroundColor="#2B1B12"
+      />
       <Text style={styles.screenTitle}>{title}</Text>
       <View style={styles.headerRight}>{right}</View>
     </View>
@@ -622,41 +639,18 @@ function BottomTabs({
         <View pointerEvents="none" style={styles.tabBarTint} />
 
         <View style={styles.tabBarRow}>
-          {tabs.map((tab) => {
-            const selected = active === tab.key;
-
-            return (
-              <Pressable
-                key={tab.key}
-                onPress={() => onSelect(tab.key)}
-                accessibilityRole="tab"
-                accessibilityLabel={`Navigate to ${tab.title} tab`}
-                accessibilityHint={`Switches to the ${tab.title} screen.`}
-                accessibilityState={{ selected }}
-                hitSlop={4}
-                style={({ pressed }) => [
-                  styles.tabItem,
-                  selected && styles.tabItemActive,
-                  pressed && styles.tabItemPressed,
-                ]}
-              >
-                <Icon
-                  name={tab.icon}
-                  size={20}
-                  color={selected ? C.gold : C.dim}
-                />
-                <Text
-                  numberOfLines={1}
-                  style={[
-                    styles.tabLabel,
-                    selected && styles.tabLabelActive,
-                  ]}
-                >
-                  {tab.title}
-                </Text>
-              </Pressable>
-            );
-          })}
+          {tabs.map((tab) => (
+            <AnimatedTabItem
+              key={tab.key}
+              tab={tab.key}
+              label={tab.title}
+              selected={active === tab.key}
+              onPress={onSelect}
+              accessibilityLabel={`Navigate to ${tab.title} tab`}
+              activeColor={C.gold}
+              inactiveColor={C.dim}
+            />
+          ))}
         </View>
       </View>
     </View>
@@ -665,11 +659,19 @@ function BottomTabs({
 
 function FeatureTile({ icon, title, subtitle, onPress }: { icon: IconName; title: string; subtitle: string; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.featureTile, pressed && styles.pressed]}>
+    <AnimatedPressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${title}. ${subtitle}`}
+      pressedScale={0.955}
+      pressedOpacity={0.88}
+      style={styles.featureTile}
+    >
       <View style={styles.featureIcon}><Icon name={icon} size={23} color={C.gold} /></View>
       <Text style={styles.featureTitle}>{title}</Text>
       <Text style={styles.featureSubtitle}>{subtitle}</Text>
-    </Pressable>
+      <View style={styles.featureTileArrow}><Icon name="arrow-up-right" size={13} color={C.gold} /></View>
+    </AnimatedPressable>
   );
 }
 
