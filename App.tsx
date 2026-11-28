@@ -2216,42 +2216,6 @@ function AppContent() {
             <Text style={styles.challengeQuestion}>{activity.title}</Text>
             <Text style={styles.wordExampleText}>{activity.script}</Text>
             <AppButton title="Play listening audio" icon="play-circle-outline" onPress={() => Speech.speak(activity.script, { language: 'en-US', rate: 0.86 })} />
-            {Array.isArray(activity.questions) ? activity.questions.map((question: any, index: number) => (
-              <View key={index} style={styles.savedWordRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.wordExampleLabel}>QUESTION {index + 1}</Text>
-                  <Text style={styles.wordMeaning}>{question.prompt}</Text>
-                  {question.options.map((option: string, optionIndex: number) => {
-                    const selected = generatedAnswerChoices.listening?.[index] === optionIndex;
-                    const checked = Boolean(generatedAnswerChecked.listening);
-                    const correct = checked && optionIndex === question.answerIndex;
-                    return (
-                      <Pressable key={optionIndex} disabled={checked} onPress={() => setGeneratedAnswerChoices(current => ({ ...current, listening: { ...(current.listening || {}), [index]: optionIndex } }))} style={[styles.quizOption, selected && styles.quizOptionSelected, correct && styles.quizOptionCorrect]}>
-                        <Text style={styles.quizOptionText}>{String.fromCharCode(65 + optionIndex)}. {option}</Text>
-                        {correct ? <Icon name="checkmark-circle" color={C.green} size={18} /> : null}
-                      </Pressable>
-                    );
-                  })}
-                  {generatedAnswerChecked.listening ? <Text style={styles.tipText}>{generatedAnswerChoices.listening?.[index] === question.answerIndex ? 'Correct.' : 'Not quite.'} {question.explanation}</Text> : null}
-                </View>
-              </View>
-            )) : null}
-            {Array.isArray(activity.questions) ? (
-              <AppButton title={generatedAnswerChecked.listening ? 'Create another listening activity' : 'Check listening answers'} icon="checkmark" disabled={!generatedAnswerChecked.listening && activity.questions.some((_: any, index: number) => generatedAnswerChoices.listening?.[index] === undefined)} onPress={() => {
-                if (generatedAnswerChecked.listening) {
-                  setGeneratedActivities(current => { const next = { ...current }; delete next.listening; return next; });
-                  setGeneratedAnswerChoices(current => ({ ...current, listening: {} }));
-                  setGeneratedAnswerChecked(current => ({ ...current, listening: false }));
-                  void generateLearningActivity('listening');
-                } else {
-                  const score = activity.questions.filter((question: any, index: number) => generatedAnswerChoices.listening?.[index] === question.answerIndex).length;
-                  setGeneratedAnswerChecked(current => ({ ...current, listening: true }));
-                  void submitLearningAttempt('listening', activity.title || 'Listening', score, activity.questions.length, skillLevels.listening || learnerLevel);
-                }
-              }} />
-            ) : null}
-          </View>
-        ) : null}
         {renderAIActivityPanel('listening', 'A new story for your ears', 'Emma creates a new script and comprehension questions. Text-to-speech currently reads the generated script aloud.')}
       </StaggeredScrollView>
     );
