@@ -2111,6 +2111,22 @@ function AppContent() {
     );
   };
 
+  const renderLesson = () => (
+    <StaggeredScrollView {...scrollProps} animationKey={screen}>
+      <ScreenHeader title="Scenarios" onBack={goBack} />
+      <ImageBackground source={EMMA} imageStyle={styles.lessonImage} style={styles.lessonImageWrap}>
+        <View style={styles.lessonImageShade} />
+        <View style={styles.lessonImageContent}>
+          <Text style={styles.cardKicker}>PRACTISE REAL LIFE</Text>
+          <Text style={styles.lessonHeroTitle}>Step into a new conversation</Text>
+          <Text style={styles.lessonHeroText}>Emma creates a fresh role-play for your goal and CEFR level.</Text>
+        </View>
+      </ImageBackground>
+      {renderAIActivityPanel('scenarios', 'Your next real-life scene', 'Generate a role, goal, opening line and useful phrases. Then practise it in Emma Chat.')}
+      <AppButton title="Start a conversation with Emma" icon="chatbubble-ellipses-outline" onPress={() => openChat('Free Conversation')} />
+    </StaggeredScrollView>
+  );
+
   const renderChat = () => (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}>
       <View style={styles.chatHeader}>
