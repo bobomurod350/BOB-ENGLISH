@@ -232,7 +232,7 @@ app.get('/api/characters', (_req, res) => {
 app.post('/api/chat', async (req, res) => {
   if (!requireGemini(res)) return;
 
-  const { message, history = [], studentLevel = 'A2', scenario = 'Free Conversation', practiceMode = 'coach', learnerId } = req.body ?? {};
+  const { message, history = [], studentLevel = 'A2', scenario = 'Free Conversation', practiceMode = 'coach', learnerId, learnerProgress: clientProgress } = req.body ?? {};
 
   if (
     typeof message !== 'string' ||
@@ -294,7 +294,7 @@ app.post('/api/chat', async (req, res) => {
         level,
         safeScenario,
         safePracticeMode,
-        validateLearnerId(learnerId) ? getLearnerRecord(learnerId).skills : null,
+        validateLearnerId(learnerId) ? (getLearnerRecord(learnerId).skills || clientProgress) : clientProgress,
       ),
       input:
         'Continue this English learning conversation. ' +
