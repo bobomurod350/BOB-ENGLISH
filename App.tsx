@@ -2260,12 +2260,17 @@ function AppContent() {
       <View style={[styles.voiceProgress, { backgroundColor: selectedCharacter.surface, borderColor: selectedCharacter.accent }]}>
         <Text style={[styles.cardKicker, { color: selectedCharacter.accent }]}>{scenario.toUpperCase()}</Text>
         <Text style={styles.voiceStep}>Speak naturally with Emma</Text>
-        <Text style={styles.voiceHint}>{SPEAKING_CHALLENGES[speakingChallengeIndex].prompt}</Text>
+        <Text style={styles.voiceHint}>{generatedActivities.speaking?.mission || SPEAKING_CHALLENGES[speakingChallengeIndex].prompt}</Text>
         <Pressable onPress={() => setSpeakingChallengeIndex(index => (index + 1) % SPEAKING_CHALLENGES.length)} style={styles.speakingMissionButton}>
           <Icon name="shuffle-outline" size={15} color={selectedCharacter.accent} />
           <Text style={styles.speakingMissionText}>Change speaking mission</Text>
         </Pressable>
         <ProgressBar progress={60} color={selectedCharacter.accent} />
+        <View style={{ marginTop: 12 }}>
+          <AppButton title={generatingSkill === 'speaking' ? 'Emma is preparing…' : 'Generate a new AI speaking mission'} icon="sparkles" secondary disabled={generatingSkill === 'speaking'} onPress={() => { void generateLearningActivity('speaking'); }} />
+        </View>
+        {Array.isArray(generatedActivities.speaking?.prompts) ? generatedActivities.speaking.prompts.map((prompt: string, index: number) => <Text key={index} style={styles.voiceHint}>{index + 1}. {prompt}</Text>) : null}
+        <Text style={styles.mutedText}>Speaking level {skillLevels.speaking || learnerLevel} · mastery {skillProgress.speaking?.mastery ?? 0}%</Text>
       </View>
 
       <View style={styles.voiceCenter}>
