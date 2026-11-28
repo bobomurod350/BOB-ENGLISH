@@ -2208,7 +2208,7 @@ function AppContent() {
         <View style={styles.pageIntro}>
           <Text style={styles.eyebrow}>LISTEN · UNDERSTAND · RESPOND</Text>
           <Text style={styles.pageHeading}>Train your listening ear</Text>
-          <Text style={styles.mutedText}>Fresh listening passages, written for your current level.</Text>
+          <Text style={styles.mutedText}>Fresh listening passages, generated for your current level.</Text>
         </View>
         {activity?.script ? (
           <View style={styles.challengePanel}>
@@ -2216,7 +2216,9 @@ function AppContent() {
             <Text style={styles.challengeQuestion}>{activity.title}</Text>
             <Text style={styles.wordExampleText}>{activity.script}</Text>
             <AppButton title="Play listening audio" icon="play-circle-outline" onPress={() => Speech.speak(activity.script, { language: 'en-US', rate: 0.86 })} />
-        {renderAIActivityPanel('listening', 'A new story for your ears', 'Emma creates a new script and comprehension questions. Text-to-speech currently reads the generated script aloud.')}
+          </View>
+        ) : null}
+        {renderAIActivityPanel('listening', 'A new story for your ears', 'Emma creates a new script and interactive comprehension questions. Text-to-speech reads the generated script aloud.')}
       </StaggeredScrollView>
     );
   };
