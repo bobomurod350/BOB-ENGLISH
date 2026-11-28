@@ -18,7 +18,32 @@ Base branch: `validation/all-prs`.
 - The old hard-coded LAN address has been removed.
 - The six existing app modules and navigation are retained.
 
-### Backend
+### Visual design and interaction pass
+
+Design source: [Figma — Emma Premium Café · Six Modules](https://www.figma.com/design/iQI1665PnXTCqzIQ6bqRSG).
+
+The Figma file contains six editable 393 × 852 px mobile screen frames:
+1. AI Chat — Emma
+2. Scenarios
+3. Vocabulary Lab
+4. Grammar Detective
+5. Listening Lab
+6. Speaking Studio
+
+It also includes reusable Café UI components (primary/secondary button, live status, Emma avatar and chat bubbles), plus local color, spacing, radius and typography tokens using the existing Espresso / Roast / Mocha / Cream / Gold / Copper direction.
+
+In the Expo app, the existing animated component library is now used for:
+- Primary and secondary CTAs, icon buttons and screen back controls.
+- Home module tiles, scenario cards and bottom navigation with animated selected state.
+- Chat mode chips, quick replies, composer controls and send action.
+- Vocabulary flashcard reveal, bookmarks and answer options.
+- Grammar and Listening generated quiz answers.
+- Speaking microphone touch feedback, live-session pulse ring and activity bars that react to the real recording/speaking state.
+- Listening text-to-speech control with real playing/stopped UI state.
+
+These are native React Native interactions with real existing callbacks, not decorative Figma-only buttons. The Figma file was created successfully; additional screenshot inspection was limited by Figma account call limits, and no Android device visual QA has been run.
+
+## Backend
 - Gemini-backed `POST /api/learning/generate` creates structured fresh content for Scenarios, Vocabulary, Grammar, Listening and Speaking.
 - CEFR labels supported in prompts: Pre-A1, A1, A2, B1, B2, C1, C2.
 - Generation prompt can use per-skill levels, mastery, accuracy, attempt counts and weak topics.
