@@ -409,6 +409,76 @@ app.post('/api/live-token', async (req, res) => {
   }
 });
  
+
+// Adaptive learning content generation for the six learning modules.
+const CEFR_LEVELS = ['Pre-A1', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+const LEARNING_SKILLS = ['scenarios', 'vocabulary', 'grammar', 'listening', 'speaking'];
+const SKILL_SCHEMAS = {
+  scenarios: { title: 'string', context: 'string', role: 'string', goal: 'string', openingLine: 'string', usefulPhrases: ['string'] },
+  vocabulary: { title: 'string', words: [{ word: 'string', partOfSpeech: 'string', meaning: 'string', example: 'string', translationHint: 'string' }] },
+  grammar: { title: 'string', topic: 'string', explanation: 'string', examples: ['string'], questions: [{ prompt: 'string', options: ['string'], answerIndex: 'number', explanation: 'string' }] },
+  listening: { title: 'string', script: 'string', questions: [{ prompt: 'string', options: ['string'], answerIndex: 'number', explanation: 'string' }] },
+  speaking: { title: 'string', mission: 'string', prompts: ['string'], successCriteria: ['string'] },
+};
+function safeProgress(raw) {
+  const result = {};
+  for (const skill of LEARNING_SKILLS) {
+    const value = raw && typeof raw[skill] === 'object' ? raw[skill] : {};
+    result[skill] = {
+      level: CEFR_LEVELS.includes(value.level) ? value.level : 'A1',
+      mastery: Math.max(0, Math.min(100, Number(value.mastery) || 0)),
+      attempts: Math.max(0, Math.min(1000000, Number(value.attempts) || 0)),
+      accuracy: Math.max(0, Math.min(100, Number(value.accuracy) || 0)),
+      weakTopics: Array.isArray(value.weakTopics) ? value.weakTopics.filter(x => typeof x === 'string').slice(0, 12) : [],
+    };
+  }
+  return result;
+}
+function parseGeneratedJson(value) {
+  const text = String(value || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start < 0 || end <= start) throw new Error('Gemini returned no JSON object.');
+  return JSON.parse(text.slice(start, end + 1));
+}
+function validateActivity(skill, value) {
+  const schema = SKILL_SCHEMAS[skill];
+  for (const key of Object.keys(schema)) if (!(key in value)) throw new Error('Missing generated field: ' + key);
+  if (['grammar', 'listening'].includes(skill)) {
+    if (!Array.isArray(value.questions) || value.questions.length < 3 || value.questions.length > 8) throw new Error('Expected 3–8 questions.');
+    for (const q of value.questions) {
+      if (!Array.isArray(q.options) || q.options.length < 3 || !Number.isInteger(q.answerIndex) || q.answerIndex < 0 || q.answerIndex >= q.options.length) throw new Error('Invalid generated question.');
+    }
+  }
+  if (skill === 'vocabulary' && (!Array.isArray(value.words) || value.words.length < 5 || value.words.length > 12)) throw new Error('Expected 5–12 generated words.');
+  return value;
+}
+app.post('/api/learning/generate', async (req, res) => {
+  if (!requireGemini(res)) return;
+  const { skill, studentLevel, progress: rawProgress, recentTopics = [], learnerGoal } = req.body ?? {};
+  if (!Object.hasOwn(SKILL_SCHEMAS, skill)) return res.status(400).json({ error: 'Unsupported learning skill.' });
+  const progress = safeProgress(rawProgress);
+  const level = CEFR_LEVELS.includes(studentLevel) ? studentLevel : progress[skill].level;
+  const topics = Array.isArray(recentTopics) ? recentTopics.filter(x => typeof x === 'string').slice(0, 12) : [];
+  const prompt = [
+    'You are Emma, the only AI English tutor in BOB ENGLISH. Return valid JSON only, no markdown.',
+    'Generate a fresh mobile learning activity for skill ' + skill + ' at CEFR level ' + level + '.',
+    'Learner goal: ' + (typeof learnerGoal === 'string' ? learnerGoal.slice(0, 160) : 'everyday communication') + '.',
+    'Current skill data: ' + JSON.stringify(progress[skill]) + '.',
+    'Weak topics to target: ' + (progress[skill].weakTopics.join(', ') || 'not identified') + '.',
+    'Avoid repeating these recent topics: ' + (topics.join(', ') || 'none') + '.',
+    'Be accurate for this CEFR level. Use natural practical English. Make the activity different on every request.',
+    'Return this JSON shape: ' + JSON.stringify(SKILL_SCHEMAS[skill]),
+  ].join('\n');
+  try {
+    const result = await ai.interactions.create({ model: CHAT_MODEL, input: prompt, generation_config: { max_output_tokens: 1400 }, store: false });
+    const activity = validateActivity(skill, parseGeneratedJson(result.output_text));
+    return res.json({ success: true, skill, level, activityId: crypto.randomUUID(), activity, generatedAt: new Date().toISOString(), model: CHAT_MODEL });
+  } catch (error) {
+    console.error('Adaptive learning generation error:', error?.message || error);
+    return res.status(502).json({ error: 'Could not generate a valid learning activity. Please try again.' });
+  }
+});
 // Not found.
 app.use((_req, res) => {
   res.status(404).json({
