@@ -552,7 +552,8 @@ app.post('/api/learning/attempt', (req, res) => {
   });
   record.history = record.history.slice(0, 100);
   record.updatedAt = new Date().toISOString();
-  return res.json({ success: true, progress: record });
+  const levels = Object.fromEntries(Object.entries(record.skills).map(([name, state]) => [name, state.level]));
+  return res.json({ success: true, progress: { ...record, levels } });
 });
 
 app.post('/api/learning/saved-words', (req, res) => {
