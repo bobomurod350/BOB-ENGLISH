@@ -677,17 +677,23 @@ function FeatureTile({ icon, title, subtitle, onPress }: { icon: IconName; title
 
 function ScenarioCard({ icon, title, detail, onPress, tint = C.card2 }: { icon: IconName; title: string; detail: string; onPress: () => void; tint?: string }) {
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.scenarioCard, { backgroundColor: tint }, pressed && styles.pressed]}>
+    <AnimatedPressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${title}. ${detail}`}
+      pressedScale={0.975}
+      pressedOpacity={0.88}
+      style={[styles.scenarioCard, { backgroundColor: tint }]}
+    >
       <View style={styles.scenarioIcon}><Icon name={icon} size={24} color={C.gold} /></View>
       <View style={styles.scenarioCopy}>
         <Text style={styles.scenarioTitle}>{title}</Text>
         <Text style={styles.scenarioDetail}>{detail}</Text>
       </View>
       <Icon name="chevron-forward" size={18} color={C.gold} />
-    </Pressable>
+    </AnimatedPressable>
   );
 }
-
 function WelcomeEntrance({
   children,
   index,
@@ -1066,14 +1072,14 @@ function AppContent() {
           practiceMode: chatMode,
           learnerId,
           learnerProgress: skillProgress,
-          scenarioContext: scenario === 'Free Conversation' ? null : {
-            title: generatedActivities.scenarios?.title,
-            context: generatedActivities.scenarios?.context,
-            role: generatedActivities.scenarios?.role,
-            goal: generatedActivities.scenarios?.goal,
-            openingLine: generatedActivities.scenarios?.openingLine,
-            usefulPhrases: generatedActivities.scenarios?.usefulPhrases,
-          },
+          scenarioContext: generatedActivities.scenarios ? {
+            title: generatedActivities.scenarios.title,
+            context: generatedActivities.scenarios.context,
+            role: generatedActivities.scenarios.role,
+            goal: generatedActivities.scenarios.goal,
+            openingLine: generatedActivities.scenarios.openingLine,
+            usefulPhrases: generatedActivities.scenarios.usefulPhrases,
+          } : null,
         }),
       });
 
@@ -1762,7 +1768,7 @@ function AppContent() {
 
       <View style={styles.featureGrid}>
         <FeatureTile icon="chatbubble-ellipses-outline" title="AI Chat" subtitle="Talk freely" onPress={() => openChat('Free Conversation')} />
-        <FeatureTile icon="briefcase-outline" title="Scenarios" subtitle="Real-life" onPress={() => navigate('practice')} />
+        <FeatureTile icon="briefcase-outline" title="Scenarios" subtitle="Real-life" onPress={() => navigate('lesson')} />
         <FeatureTile icon="book-outline" title="Vocabulary" subtitle="New words" onPress={() => navigate('vocabulary')} />
         <FeatureTile icon="library-outline" title="Grammar" subtitle="With examples" onPress={() => navigate('correction')} />
         <FeatureTile icon="headset-outline" title="Listening" subtitle="Train your ear" onPress={openListening} />
@@ -2107,7 +2113,30 @@ function AppContent() {
               <>
                 <Text style={styles.wordExampleLabel}>LISTENING SCRIPT</Text>
                 <Text style={styles.wordExampleText}>{activity.script}</Text>
-                <AppButton title="Play audio" icon="volume-high-outline" secondary onPress={() => Speech.speak(activity.script, { language: 'en-US', rate: 0.82 })} />
+                <AppButton
+                  title={skill === 'listening' && listeningPlaying ? 'Stop listening' : 'Play audio'}
+                  icon={skill === 'listening' && listeningPlaying ? 'stop-circle-outline' : 'volume-high-outline'}
+                  secondary={skill === 'listening' && listeningPlaying}
+                  onPress={() => {
+                    if (skill === 'listening' && listeningPlaying) {
+                      void Speech.stop();
+                      setListeningPlaying(false);
+                      return;
+                    }
+                    void Speech.stop();
+                    if (skill === 'listening') setListeningPlaying(true);
+                    Speech.speak(activity.script, {
+                      language: 'en-US',
+                      rate: 0.82,
+                      onDone: () => { if (skill === 'listening') setListeningPlaying(false); },
+                      onStopped: () => { if (skill === 'listening') setListeningPlaying(false); },
+                      onError: () => {
+                        if (skill === 'listening') setListeningPlaying(false);
+                        Alert.alert('Audio unavailable', 'Please check that an English text-to-speech voice is installed on your device.');
+                      },
+                    });
+                  }}
+                />
               </>
             ) : null}
             {Array.isArray(activity.usefulPhrases) ? activity.usefulPhrases.map((phrase: string, index: number) => <Text key={index} style={styles.wordExampleText}>• {phrase}</Text>) : null}
@@ -2230,43 +2259,24 @@ function AppContent() {
     );
   };
 
-  const renderListening = () => {
-    const activity = generatedActivities.listening;
-    return (
-      <StaggeredScrollView {...scrollProps} animationKey={screen}>
-        <ScreenHeader title="Listening Lab" onBack={goBack} />
-        <View style={styles.pageIntro}>
-          <Text style={styles.eyebrow}>LISTEN · UNDERSTAND · RESPOND</Text>
-          <Text style={styles.pageHeading}>Train your listening ear</Text>
-          <Text style={styles.mutedText}>Fresh listening passages, generated for your current level.</Text>
-        </View>
-        {activity?.script ? (
-          <View style={styles.challengePanel}>
-            <Text style={styles.cardKicker}>AI LISTENING · {skillLevels.listening || learnerLevel}</Text>
-            <Text style={styles.challengeQuestion}>{activity.title}</Text>
-            <Text style={styles.wordExampleText}>{activity.script}</Text>
-            <AppButton title={listeningPlaying ? 'Playing story…' : 'Play listening audio'} icon={listeningPlaying ? 'pause-circle-outline' : 'play-circle-outline'} secondary={listeningPlaying} onPress={() => {
-              if (listeningPlaying) {
-                void Speech.stop();
-                setListeningPlaying(false);
-                return;
-              }
-              void Speech.stop();
-              setListeningPlaying(true);
-              Speech.speak(activity.script, {
-                language: 'en-US',
-                rate: 0.86,
-                onDone: () => setListeningPlaying(false),
-                onStopped: () => setListeningPlaying(false),
-                onError: () => setListeningPlaying(false),
-              });
-            }} />
-          </View>
-        ) : null}
-        {renderAIActivityPanel('listening', 'A new story for your ears', 'Emma creates a new script and interactive comprehension questions. Text-to-speech reads the generated script aloud.')}
-      </StaggeredScrollView>
-    );
-  };
+  const renderListening = () => (
+    <StaggeredScrollView {...scrollProps} animationKey={screen}>
+      <ScreenHeader title="Listening Lab" onBack={goBack} />
+      <View style={styles.pageIntro}>
+        <Text style={styles.eyebrow}>LISTEN · UNDERSTAND · RESPOND</Text>
+        <Text style={styles.pageHeading}>Train your listening ear</Text>
+        <Text style={styles.mutedText}>Original listening passages with instant comprehension feedback.</Text>
+      </View>
+      <View style={styles.wordSummary}>
+        <View><Text style={styles.wordSummaryNumber}>{skillProgress.listening?.attempts ?? 0}</Text><Text style={styles.mutedText}>Sessions</Text></View>
+        <View style={styles.wordSummaryDivider} />
+        <View><Text style={styles.wordSummaryNumber}>{skillProgress.listening?.accuracy ?? 0}%</Text><Text style={styles.mutedText}>Accuracy</Text></View>
+        <View style={styles.wordSummaryDivider} />
+        <View><Text style={styles.wordSummaryNumber}>{skillProgress.listening?.level || skillLevels.listening || learnerLevel}</Text><Text style={styles.mutedText}>Level</Text></View>
+      </View>
+      {renderAIActivityPanel('listening', 'A new story for your ears', 'Emma creates a new script and interactive comprehension questions. Audio is played through your device speech engine.')}
+    </StaggeredScrollView>
+  );
 
   const renderLesson = () => (
     <StaggeredScrollView {...scrollProps} animationKey={screen}>
