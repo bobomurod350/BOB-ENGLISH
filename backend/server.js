@@ -339,8 +339,8 @@ app.post('/api/live-token', async (req, res) => {
   const learnerId = req.body?.learnerId;
   const learnerSkills = validateLearnerId(learnerId) ? getLearnerRecord(learnerId).skills : null;
   const requestedLevel = learnerSkills?.speaking?.level || 'A2';
-  const speakingChallenge = LIVE_SPEAKING_CHALLENGES.has(requestedSpeakingChallenge)
-    ? requestedSpeakingChallenge
+  const speakingChallenge = typeof requestedSpeakingChallenge === 'string' && requestedSpeakingChallenge.trim().length > 0
+    ? requestedSpeakingChallenge.trim().slice(0, 500)
     : 'Tell Emma about what you did yesterday. Use first, then, after that and finally.';
 
   const characterId = 'emma';
