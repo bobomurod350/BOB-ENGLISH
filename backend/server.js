@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { fileURLToPath } from 'node:url';
+import { randomUUID } from 'node:crypto';
 import { GoogleGenAI } from '@google/genai';
 
 // Load backend/.env regardless of the shell's current working directory.
@@ -490,7 +491,7 @@ app.post('/api/learning/generate', async (req, res) => {
   try {
     const result = await ai.interactions.create({ model: CHAT_MODEL, input: prompt, generation_config: { max_output_tokens: 1400 }, store: false });
     const activity = validateActivity(skill, parseGeneratedJson(result.output_text));
-    return res.json({ success: true, skill, level, activityId: crypto.randomUUID(), activity, generatedAt: new Date().toISOString(), model: CHAT_MODEL });
+    return res.json({ success: true, skill, level, activityId: randomUUID(), activity, generatedAt: new Date().toISOString(), model: CHAT_MODEL });
   } catch (error) {
     console.error('Adaptive learning generation error:', error?.message || error);
     return res.status(502).json({ error: 'Could not generate a valid learning activity. Please try again.' });
@@ -558,7 +559,7 @@ app.post('/api/learning/attempt', (req, res) => {
   }
   record.skills[skill] = { level: nextLevel, mastery, attempts, accuracy: rollingAccuracy, weakTopics };
   record.history.unshift({
-    id: crypto.randomUUID(),
+    id: randomUUID(),
     skill,
     topic: typeof topic === 'string' ? topic.slice(0, 80) : skill,
     level: CHAT_LEVELS.includes(level) ? level : previous.level,
