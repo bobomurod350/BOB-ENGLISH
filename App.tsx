@@ -938,7 +938,8 @@ function AppContent() {
       const data = await response.json();
       if (!response.ok || data.success !== true) throw new Error(data.error || 'Could not save the attempt.');
       setSkillProgress(data.progress?.skills || {});
-      setSkillLevels(data.progress?.levels || {});
+      const levelMap = Object.fromEntries(Object.entries(data.progress?.skills || {}).map(([name, value]: [string, any]) => [name, value.level]));
+      setSkillLevels(current => ({ ...current, ...levelMap }));
     } catch (error) {
       setLearningApiMessage(error instanceof Error ? error.message : 'Attempt sync failed.');
     }
