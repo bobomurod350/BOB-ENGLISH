@@ -1046,6 +1046,7 @@ function AppContent() {
           scenario,
           practiceMode: chatMode,
           learnerId,
+          learnerProgress: skillProgress,
         }),
       });
 
