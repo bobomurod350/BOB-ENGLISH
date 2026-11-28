@@ -2205,8 +2205,8 @@ function AppContent() {
               {vocabularyRevealed ? <View style={styles.wordExample}><Text style={styles.wordExampleLabel}>EXAMPLE</Text><Text style={styles.wordExampleText}>{current.example}</Text></View> : null}
             </AnimatedPressable>
             <View style={styles.challengeActionRow}>
-              <AnimatedPressable accessibilityRole="button" style={styles.secondaryAction} onPress={() => Speech.speak(current.word, { language: 'en-US', rate: 0.82 })}><Icon name="volume-high-outline" color={C.gold} size={18} /><Text style={styles.secondaryActionText}>Listen</Text></Pressable>
-              <AnimatedPressable accessibilityRole="button" style={styles.secondaryAction} onPress={() => toggleSaveWord(current.word)}><Icon name="bookmark-outline" color={C.gold} size={18} /><Text style={styles.secondaryActionText}>{savedWords.includes(current.word) ? 'Saved' : 'Save'}</Text></Pressable>
+              <AnimatedPressable accessibilityRole="button" style={styles.secondaryAction} onPress={() => Speech.speak(current.word, { language: 'en-US', rate: 0.82 })}><Icon name="volume-high-outline" color={C.gold} size={18} /><Text style={styles.secondaryActionText}>Listen</Text></AnimatedPressable>
+              <AnimatedPressable accessibilityRole="button" style={styles.secondaryAction} onPress={() => toggleSaveWord(current.word)}><Icon name="bookmark-outline" color={C.gold} size={18} /><Text style={styles.secondaryActionText}>{savedWords.includes(current.word) ? 'Saved' : 'Save'}</Text></AnimatedPressable>
             </View>
             <View style={styles.challengeActionRow}>
               <AppButton title="Previous" secondary compact onPress={() => { setVocabularyIndex(index => Math.max(0, index - 1)); setVocabularyRevealed(false); }} disabled={vocabularyIndex === 0} />
@@ -2340,7 +2340,7 @@ function AppContent() {
         {['Yes, I do.', 'Not really.', 'What about you?'].map(item => (
           <AnimatedPressable key={item} onPress={() => setChatInput(item)} pressedScale={0.95} style={styles.quickReply}>
             <Text style={styles.quickReplyText}>{item}</Text>
-          </Pressable>
+          </AnimatedPressable>
         ))}
       </View>
 
@@ -2348,16 +2348,17 @@ function AppContent() {
         <AnimatedPressable accessibilityRole="button" accessibilityLabel="Open vocabulary" style={styles.composerAdd} onPress={() => navigate('vocabulary')}><Icon name="add" size={23} color={C.gold} /></AnimatedPressable>
         <TextInput value={chatInput} onChangeText={setChatInput} placeholder="Type in English..." placeholderTextColor={C.dim} style={styles.composerInput} returnKeyType="send" onSubmitEditing={sendMessage} />
         <AnimatedPressable accessibilityRole="button" accessibilityLabel="Open speaking practice" style={styles.composerMic} onPress={() => navigate('voice')}><Icon name="mic" size={21} color="#2B180D" /></AnimatedPressable>
-        <Pressable
+        <AnimatedPressable
           style={[styles.sendButton, chatSending && { opacity: 0.55 }]}
           onPress={sendMessage}
           disabled={chatSending || !chatInput.trim()}
           accessibilityRole="button"
           accessibilityLabel="Send message to Emma"
           accessibilityState={{ disabled: chatSending || !chatInput.trim() }}
+          pressedScale={0.9}
         >
           <Icon name="send" size={18} color="#2B180D" />
-        </Pressable>
+        </AnimatedPressable>
       </View>
 
       <View style={styles.demoNotice}>
